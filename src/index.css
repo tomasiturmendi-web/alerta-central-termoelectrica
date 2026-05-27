@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@keyframes parpadeo-fondo {
+  0% { background-color: #ef4444; }
+  50% { background-color: #991b1b; }
+  100% { background-color: #ef4444; }
+}
+
+.animate-parpadeo {
+  animation: parpadeo-fondo 1s infinite;
+}
+
+@keyframes pulse-radial {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(0.95); opacity: 0.5; }
+}
+
+.animate-pulse-radial {
+  animation: pulse-radial 2s infinite;
+}
+

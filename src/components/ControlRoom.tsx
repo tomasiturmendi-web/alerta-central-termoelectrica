@@ -1,0 +1,690 @@
+import React, { useState, useEffect } from 'react';
+import { db, ref, set, onValue, firebaseConfig } from '../utils/firebase';
+import { DispositivoActivo, EstadoAlarma, Coords } from '../types';
+import { calcularDistancia, formatCoords, LAT_CENTRAL_DEFAULT, LON_CENTRAL_DEFAULT, DISTANCIA_MAX_METROS } from '../utils/geo';
+import { ShieldAlert, RefreshCw, Power, AlertTriangle, Users, MapPin, Radio, Clock, Trash2, UserPlus } from 'lucide-react';
+
+interface ControlRoomProps {
+  isSimulatedMode: boolean;
+  localAlarmState: EstadoAlarma;
+  setLocalAlarmState: (s: EstadoAlarma) => void;
+  localDevices: Record<string, DispositivoActivo>;
+  setLocalDevices: React.Dispatch<React.SetStateAction<Record<string, DispositivoActivo>>>;
+}
+
+export default function ControlRoom({
+  isSimulatedMode,
+  localAlarmState,
+  setLocalAlarmState,
+  localDevices,
+  setLocalDevices
+}: ControlRoomProps) {
+  const [alarmState, setAlarmState] = useState<EstadoAlarma>('OFF');
+  const [dbConnected, setDbConnected] = useState<boolean>(false);
+  const [devices, setDevices] = useState<Record<string, DispositivoActivo>>({});
+  const [viewMode, setViewMode] = useState<'RADAR' | 'PLANO'>('PLANO');
+  const [activityLogs, setActivityLogs] = useState<Array<{ id: string; msg: string; time: string; type: string }>>([
+    { id: '1', msg: 'Sistema de control iniciado y calibrado con GPS Central', time: new Date().toLocaleTimeString(), type: 'system' }
+  ]);
+
+  // LISTEN TO FIREBASE REALTIME DB OR SAFETY SIMULATOR OUTLETS
+  useEffect(() => {
+    if (isSimulatedMode || !db) {
+      setAlarmState(localAlarmState);
+      setDevices(localDevices);
+      setDbConnected(false);
+      return;
+    }
+
+    setDbConnected(true);
+
+    // 1. Listen to estadoAlarma
+    const alarmRef = ref(db, 'estadoAlarma');
+    const unsubscribeAlarm = onValue(alarmRef, (snapshot) => {
+      const state = snapshot.val();
+      if (state === 'ON' || state === 'OFF') {
+        setAlarmState(state);
+        setLocalAlarmState(state);
+      }
+    }, (error) => {
+      console.warn("Firebase Read Permission Denied (checking fallback):", error);
+    });
+
+    // 2. Listen to dispositivosActivos
+    const devicesRef = ref(db, 'dispositivosActivos');
+    const unsubscribeDevices = onValue(devicesRef, (snapshot) => {
+      const val = snapshot.val();
+      if (val) {
+        setDevices(val);
+        setLocalDevices(val);
+      } else {
+        setDevices({});
+        setLocalDevices({});
+      }
+    }, (error) => {
+      console.warn("Devices read restricted or empty:", error);
+    });
+
+    return () => {
+      unsubscribeAlarm();
+      unsubscribeDevices();
+    };
+  }, [isSimulatedMode, localAlarmState, localDevices, setLocalAlarmState, setLocalDevices]);
+
+  // ACTIVATE EMERGENCY TRIGGER
+  const triggerAlarm = async (targetState: EstadoAlarma) => {
+    const timeStr = new Date().toLocaleTimeString();
+    const actionMsg = targetState === 'ON' 
+      ? `🔴 ALARMA DE PLANTA INICIADA por el operador de control` 
+      : `🟢 ALARMA DE PLANTA DESACTIVADA y restablecida a modo seguro`;
+
+    // Add to local log
+    setActivityLogs(prev => [
+      { id: Date.now().toString(), msg: actionMsg, time: timeStr, type: targetState === 'ON' ? 'alert' : 'info' },
+      ...prev
+    ]);
+
+    if (isSimulatedMode || !db) {
+      setAlarmState(targetState);
+      setLocalAlarmState(targetState);
+      return;
+    }
+
+    try {
+      await set(ref(db, 'estadoAlarma'), targetState);
+    } catch (e) {
+      console.error("No se pudo escribir en Firebase. Forzando actualización de visor local:", e);
+      setAlarmState(targetState);
+      setLocalAlarmState(targetState);
+    }
+  };
+
+  // ADD SIMULATED TEST OPERATOR (TO TEST VISTA ON MAP AND METERS)
+  const addSimulatedDevice = async (preset: 'inside' | 'outside') => {
+    // Generate UUID
+    const randomId = 'sim_' + Math.floor(Math.random() * 10000);
+    const names = ['Ing. Gomez (Turbinas)', 'Operario Diaz (Calderas)', 'Téc. Ramirez (Mantenimiento)', 'Ing. Perez (Seguridad)', 'Supervisor Solis'];
+    const selectedName = names[Math.floor(Math.random() * names.length)];
+
+    // Coords inside: very near central
+    // Coords outside: farther than 500m
+    const offsetLat = preset === 'inside' ? 0.0012 : 0.0065;
+    const offsetLon = preset === 'inside' ? -0.0015 : 0.0075;
+
+    const testLat = LAT_CENTRAL_DEFAULT + (Math.random() - 0.5) * offsetLat;
+    const testLon = LON_CENTRAL_DEFAULT + (Math.random() - 0.5) * offsetLon;
+
+    const newDevice = {
+      id: randomId,
+      fecha: Date.now(),
+      activo: true,
+      lat: testLat,
+      lon: testLon,
+      nombre: selectedName
+    };
+
+    const timeStr = new Date().toLocaleTimeString();
+    setActivityLogs(prev => [
+      { id: Date.now().toString(), msg: `📡 Dispositivo simulado registrado: ${selectedName}`, time: timeStr, type: 'device' },
+      ...prev
+    ]);
+
+    if (isSimulatedMode || !db) {
+      const updated = { ...devices, [randomId]: newDevice };
+      setDevices(updated);
+      setLocalDevices(updated);
+      return;
+    }
+
+    try {
+      await set(ref(db, `dispositivosActivos/${randomId}`), newDevice);
+    } catch (e) {
+      console.error("Error al registrar dispositivo en Firebase:", e);
+      const updated = { ...devices, [randomId]: newDevice };
+      setDevices(updated);
+      setLocalDevices(updated);
+    }
+  };
+
+  // REMOVE ALL INTERACTIVE TEST DEVICES OR SESSIONS
+  const clearDevices = async () => {
+    setActivityLogs(prev => [
+      { id: Date.now().toString(), msg: '🧹 Listado de dispositivos activos depurado de la sesión', time: new Date().toLocaleTimeString(), type: 'info' },
+      ...prev
+    ]);
+
+    if (isSimulatedMode || !db) {
+      setDevices({});
+      setLocalDevices({});
+      return;
+    }
+
+    try {
+      await set(ref(db, 'dispositivosActivos'), null);
+    } catch (e) {
+      console.error("Error al borrar en Firebase:", e);
+      setDevices({});
+      setLocalDevices({});
+    }
+  };
+
+  return (
+    <div className="font-sans space-y-6 max-w-6xl mx-auto">
+      {/* DB STATUS CONTROL BAR */}
+      <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-900 border border-slate-800 rounded-xl p-4 gap-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2.5 bg-slate-800 rounded-lg text-amber-500">
+            <Radio className={`h-5 w-5 ${alarmState === 'ON' ? 'animate-pulse' : ''}`} />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-200 text-sm">Monitor de Conectividad</h3>
+            <p className="text-gray-400 text-xs font-mono">
+              {isSimulatedMode 
+                ? 'Consola local aislada (Pruebas sin red)' 
+                : `Firebase RTDB: ${firebaseConfig.databaseURL}`}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {isSimulatedMode ? (
+            <span className="bg-amber-900/30 text-amber-400 border border-amber-800/50 px-3 py-1 rounded-full text-xs font-mono flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+              MODO SIMULADOR ACTIVADO
+            </span>
+          ) : (
+            <span className="bg-emerald-950 text-emerald-400 border border-emerald-900 px-3 py-1 rounded-full text-xs font-mono flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              FIREBASE RTDB CONECTADO
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* EMERGENCY CORE TRIGGERS CONTAINER */}
+      <div className="grid md:grid-cols-12 gap-6">
+        
+        {/* PANEL DE CONTROL CENTRAL DE SIRENAS (LEFT/8-cols) */}
+        <div className="md:col-span-7 bg-slate-900 border border-slate-850 rounded-xl p-6 flex flex-col justify-between space-y-6">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-1.5 text-danger font-mono text-xs uppercase tracking-wider text-rose-500">
+              <ShieldAlert className="h-4 w-4" />
+              <span>SALA DE CONTROL GENERAL</span>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-100">Disparo de Alarma por Radiofonía</h2>
+            <p className="text-gray-400 text-sm">
+              Al tocar el botón de emergencia se guardará el estado <span className="font-mono text-rose-400 bg-rose-950/40 px-1 py-0.5 rounded">estadoAlarma = ON</span> en Firebase. 
+              Esto transmitirá instantáneamente de manera masiva un push de rescate a los celulares en el radio de 500m.
+            </p>
+          </div>
+
+          <div className="py-6 flex flex-col items-center justify-center">
+            {alarmState === 'ON' ? (
+              <div className="relative">
+                {/* Visual waves effect */}
+                <div className="absolute inset-0 bg-rose-500 rounded-full animate-ping opacity-25"></div>
+                <div className="absolute inset-0 bg-rose-500 rounded-full animate-pulse-radial opacity-40"></div>
+                
+                <button
+                  onClick={() => triggerAlarm('OFF')}
+                  className="relative h-44 w-44 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-lg flex flex-col items-center justify-center shadow-lg shadow-rose-900/60 transition-transform active:scale-95 cursor-pointer"
+                >
+                  <Power className="h-10 w-10 mb-2 animate-bounce" />
+                  <span className="uppercase text-sm tracking-widest font-mono">ALARMA ON</span>
+                  <span className="text-[10px] opacity-70 mt-1 font-mono">PRESIONAR APAGAR</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => triggerAlarm('ON')}
+                className="h-44 w-44 rounded-full bg-slate-850 hover:bg-rose-900/50 text-rose-500 hover:text-rose-400 border border-slate-800 hover:border-rose-800 font-bold text-lg flex flex-col items-center justify-center shadow-md transition-all active:scale-95 cursor-pointer hover:shadow-lg hover:shadow-rose-950/40 group"
+              >
+                <AlertTriangle className="h-10 w-10 mb-2 text-rose-600 group-hover:scale-110 transition-transform" />
+                <span className="uppercase text-sm tracking-widest font-mono">ACTIVAR</span>
+                <span className="text-[10px] text-gray-500 mt-1 font-mono">PUSH INDUSTRIAL</span>
+              </button>
+            )}
+          </div>
+
+          <div className="border-t border-slate-850 pt-5 flex items-center justify-between">
+            <div className="flex items-center space-x-3 text-sm">
+              <span className="text-gray-400">Estado Sirena:</span>
+              {alarmState === 'ON' ? (
+                <span className="bg-rose-900/40 text-rose-400 border border-rose-800 rounded px-2.5 py-0.5 font-bold font-mono text-xs tracking-wider animate-pulse flex items-center gap-1">
+                  🔴 ACTIVO (ON)
+                </span>
+              ) : (
+                <span className="bg-slate-800 text-slate-400 border border-slate-700 rounded px-2.5 py-0.5 font-mono text-xs">
+                  ⚪ INACTIVO (OFF)
+                </span>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={() => triggerAlarm('OFF')}
+                className="bg-slate-800 hover:bg-slate-750 text-gray-200 border border-slate-750 hover:border-slate-700 px-3 py-1.5 rounded-lg text-xs font-mono transition-transform active:scale-95 cursor-pointer"
+              >
+                Resetear Alarma (OFF)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* RADAR VISUAL COMPONENT (RIGHT/5-cols) */}
+        <div className="md:col-span-5 bg-slate-900 border border-slate-850 rounded-xl p-5 flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+            <h3 className="font-bold text-xs text-slate-205 font-mono tracking-wide uppercase">Plano & Posicionamiento</h3>
+            <div className="flex bg-slate-950 p-0.5 rounded-md border border-slate-850">
+              <button
+                type="button"
+                onClick={() => setViewMode('PLANO')}
+                className={`px-2 py-0.5 rounded text-[9px] font-mono transition-colors uppercase cursor-pointer ${
+                  viewMode === 'PLANO' 
+                    ? 'bg-blue-600 text-white font-bold' 
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                Plano Central
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('RADAR')}
+                className={`px-2 py-0.5 rounded text-[9px] font-mono transition-colors uppercase cursor-pointer ${
+                  viewMode === 'RADAR' 
+                    ? 'bg-blue-600 text-white font-bold' 
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                Radar GPS
+              </button>
+            </div>
+          </div>
+
+          {/* SVG Radar Simulator */}
+          <div className="relative aspect-square w-full max-w-[280px] mx-auto bg-slate-1000 rounded-full border border-slate-850 overflow-hidden flex items-center justify-center">
+            {viewMode === 'RADAR' ? (
+              <>
+                {/* Compass axis lines */}
+                <div className="absolute inset-x-0 h-[10px] border-b border-dashed border-slate-800"></div>
+                <div className="absolute inset-y-0 w-[10px] border-r border-dashed border-slate-800"></div>
+                
+                {/* Visual ranges circles */}
+                <div className="absolute h-4/5 w-4/5 rounded-full border border-dashed border-sky-900/30"></div>
+                <div className="absolute h-2/5 w-2/5 rounded-full border border-dashed border-sky-900/20"></div>
+
+                {/* Critical Perimeter 500m Circle */}
+                <div className="absolute h-3/5 w-3/5 rounded-full border-2 border-emerald-500/30 bg-emerald-500/5 animate-pulse"></div>
+                <span className="absolute top-[21%] right-[21%] text-[8px] font-mono text-emerald-400 opacity-60">LÍMITE 500m</span>
+              </>
+            ) : (
+              <>
+                {/* HIGH FIDELITY SVG BLUEPRINT OF THERMOELECTRIC POWER PLANT (Trace of CAD Drawing) */}
+                <svg className="absolute inset-0 w-full h-full opacity-75 select-none pointer-events-none" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+                  {/* AutoCAD Grid Pattern Background */}
+                  <defs>
+                    <pattern id="grid-cad" width="15" height="15" patternUnits="userSpaceOnUse">
+                      <path d="M 15 0 L 0 0 0 15" fill="none" stroke="#38bdf8" strokeWidth="0.15" opacity="0.35" />
+                    </pattern>
+                  </defs>
+                  
+                  {/* Dark Charcoal CAD Terminal Canvas */}
+                  <rect width="280" height="280" fill="#0d0f12" />
+                  <rect width="280" height="280" fill="url(#grid-cad)" />
+
+                  {/* Circle border boundary enclosing the blueprint view */}
+                  <circle cx="140" cy="140" r="139" fill="none" stroke="#334155" strokeWidth="1.2" />
+                  
+                  {/* Evacuation perimeter indicator */}
+                  <circle cx="140" cy="140" r="115" fill="none" stroke="#ef4444" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.35" />
+                  <text x="140" y="32" fill="#f87171" fontSize="5.5" fontFamily="monospace" textAnchor="middle" letterSpacing="0.5" opacity="0.75">LÍMITE COBERTURA DE EVACUACIÓN (500m)</text>
+
+                  {/* Shifting the entire CAD drawing so that yellow turbine room matches (140,140) */}
+                  <g transform="translate(-91, -5)">
+                    
+                    {/* Left Highway and Boundary lines */}
+                    <line x1="45" y1="0" x2="45" y2="370" stroke="#475569" strokeWidth="0.8" strokeDasharray="4 2" />
+                    
+                    {/* Curve access roads */}
+                    <path d="M 45 195 L 165 195 L 165 240 M 45 205 L 155 205 L 155 240" fill="none" stroke="#475569" strokeWidth="0.85" />
+                    
+                    {/* Security Entrance booth office */}
+                    <rect x="15" y="295" width="18" height="40" fill="#0f172a" stroke="#64748b" strokeWidth="0.8" />
+                    <line x1="15" y1="315" x2="33" y2="315" stroke="#64748b" strokeWidth="0.6" opacity="0.5" />
+
+                    {/* Left exhaust towers stack (The tall block with 11 stack valve circles) */}
+                    <rect x="120" y="25" width="16" height="105" fill="#090d16" stroke="#e2e8f0" strokeWidth="0.85" />
+                    <line x1="120" y1="45" x2="136" y2="45" stroke="#e2e8f0" strokeWidth="0.55" opacity="0.4" />
+                    <line x1="120" y1="70" x2="136" y2="70" stroke="#e2e8f0" strokeWidth="0.55" opacity="0.4" />
+                    <line x1="120" y1="95" x2="136" y2="95" stroke="#e2e8f0" strokeWidth="0.55" opacity="0.4" />
+                    <line x1="120" y1="120" x2="136" y2="120" stroke="#e2e8f0" strokeWidth="0.55" opacity="0.4" />
+                    
+                    {/* 11 exhaust manifold circles lined up inside */}
+                    <circle cx="128" cy="32" r="3.5" fill="none" stroke="#cbd5e1" strokeWidth="0.6" />
+                    <circle cx="128" cy="41" r="3.5" fill="none" stroke="#cbd5e1" strokeWidth="0.6" />
+                    <circle cx="128" cy="50" r="3.5" fill="none" stroke="#cbd5e1" strokeWidth="0.6" />
+                    <circle cx="128" cy="59" r="3.5" fill="none" stroke="#cbd5e1" strokeWidth="0.6" />
+                    <circle cx="128" cy="68" r="3.5" fill="none" stroke="#cbd5e1" strokeWidth="0.6" />
+                    <circle cx="128" cy="77" r="3.5" fill="none" stroke="#cbd5e1" strokeWidth="0.6" />
+                    <circle cx="128" cy="86" r="3.5" fill="none" stroke="#cbd5e1" strokeWidth="0.6" />
+                    <circle cx="128" cy="95" r="3.5" fill="none" stroke="#cbd5e1" strokeWidth="0.6" />
+                    <circle cx="128" cy="104" r="3.5" fill="none" stroke="#cbd5e1" strokeWidth="0.6" />
+                    <circle cx="128" cy="113" r="3.5" fill="none" stroke="#cbd5e1" strokeWidth="0.6" />
+                    <circle cx="128" cy="122" r="3.5" fill="none" stroke="#cbd5e1" strokeWidth="0.6" />
+                    
+                    <text x="128" y="14" fill="#64748b" fontSize="5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">CHIMENEA</text>
+
+                    {/* Left Admin / Office blocks */}
+                    <rect x="110" y="150" width="45" height="35" fill="#0f172a" stroke="#94a3b8" strokeWidth="0.8" />
+                    <line x1="110" y1="168" x2="155" y2="168" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
+                    
+                    <rect x="115" y="215" width="45" height="35" fill="#0f172a" stroke="#94a3b8" strokeWidth="0.8" />
+                    <circle cx="137.5" cy="232.5" r="5" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
+
+                    {/* Upper Boilers Block A (Thermo Boiler Systems) */}
+                    <rect x="175" y="32" width="42" height="42" fill="#090d16" stroke="#ffffff" strokeWidth="0.85" />
+                    <circle cx="196" cy="53" r="10" fill="none" stroke="#94a3b8" strokeWidth="0.6" strokeDasharray="2 1" />
+                    <rect x="180" y="37" width="32" height="32" fill="none" stroke="#ffffff" strokeWidth="0.5" opacity="0.4" />
+                    <text x="196" y="25" fill="#94a3b8" fontSize="5" fontFamily="monospace" textAnchor="middle">CALDERA A</text>
+
+                    {/* Upper Boilers Block B */}
+                    <rect x="175" y="85" width="42" height="42" fill="#090d16" stroke="#ffffff" strokeWidth="0.85" />
+                    <circle cx="196" cy="106" r="10" fill="none" stroke="#94a3b8" strokeWidth="0.6" strokeDasharray="2 1" />
+                    <rect x="180" y="90" width="32" height="32" fill="none" stroke="#ffffff" strokeWidth="0.5" opacity="0.4" />
+                    <text x="196" y="80" fill="#94a3b8" fontSize="5" fontFamily="monospace" textAnchor="middle">CALDERA B</text>
+
+                    {/* Steam routing system line manifold header */}
+                    <path d="M 196 74 L 196 85" stroke="#38bdf8" strokeWidth="1" />
+                    <path d="M 217 53 L 231 53 L 231 130" fill="none" stroke="#38bdf8" strokeWidth="1" />
+                    <path d="M 217 106 L 231 106" stroke="#38bdf8" strokeWidth="1" />
+                    
+                    {/* Auxiliary Boiler Systems beneath B */}
+                    <rect x="175" y="138" width="42" height="22" fill="#0f172a" stroke="#64748b" strokeWidth="0.8" />
+                    <line x1="175" y1="149" x2="217" y2="149" stroke="#64748b" strokeWidth="0.5" />
+
+                    {/* THE CENTRAL STEAM TURBINE & THE GLOWING YELLOW BLUIPRINT HIGHLIGHT */}
+                    {/* This turbine block represents the precise location of our Siren & Control Central */}
+                    <rect x="226" y="110" width="18" height="60" fill="#070a13" stroke="#e2e8f0" strokeWidth="0.9" />
+                    <line x1="226" y1="125" x2="244" y2="125" stroke="#e2e8f0" strokeWidth="0.5" />
+                    <line x1="226" y1="155" x2="244" y2="155" stroke="#e2e8f0" strokeWidth="0.5" />
+                    
+                    {/* SOLID YELLOW SEMI-TRANSPARENT GLOW (The core center where sirena is) */}
+                    <rect 
+                      x="226" 
+                      y="132" 
+                      width="18" 
+                      height="21" 
+                      fill="#eab308" 
+                      fillOpacity="0.40" 
+                      stroke="#facc15" 
+                      strokeWidth="1.3" 
+                      className="animate-pulse" 
+                    />
+                    <text x="235" y="104" fill="#facc15" fontSize="5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">SALA MOTOR</text>
+
+                    {/* Electric substation grid (Right side transformer boxes) */}
+                    <rect x="254" y="112" width="28" height="56" fill="#090d16" stroke="#94a3b8" strokeWidth="0.8" />
+                    <circle cx="268" cy="126" r="4.5" fill="none" stroke="#eab308" strokeWidth="0.5" opacity="0.6" />
+                    <circle cx="268" cy="142" r="4.5" fill="none" stroke="#eab308" strokeWidth="0.5" opacity="0.6" />
+                    <circle cx="268" cy="154" r="4.5" fill="none" stroke="#eab308" strokeWidth="0.5" opacity="0.6" />
+                    
+                    {/* Grid wires leaving site rightside */}
+                    <path d="M 282 126 L 370 126 M 282 142 L 370 142 M 282 154 L 370 154" stroke="#eab308" strokeWidth="0.6" strokeDasharray="3 3" opacity="0.5" />
+                    <text x="295" y="119" fill="#eab308" fontSize="4.5" fontFamily="monospace" opacity="0.6">NODO RETE</text>
+
+                    {/* Middle Plant Process structures */}
+                    <rect x="175" y="172" width="107" height="65" fill="#090d16" stroke="#475569" strokeWidth="0.8" />
+                    <text x="228" y="208" fill="#475569" fontSize="6.5" fontFamily="monospace" textAnchor="middle" opacity="0.4">PROCESO CENTRAL</text>
+                    <path d="M 190 172 L 190 237 M 240 172 L 240 237" stroke="#475569" strokeWidth="0.5" strokeDasharray="1 1" opacity="0.5" />
+
+                    <rect x="175" y="246" width="107" height="52" fill="#090d16" stroke="#475569" strokeWidth="0.8" />
+                    <line x1="175" y1="272" x2="282" y2="272" stroke="#475569" strokeWidth="0.5" opacity="0.5" />
+
+                    {/* BOTTOM CONDENSER DECK FAN ARRAY (The long structure with 9 circles) */}
+                    <rect x="165" y="310" width="120" height="17" fill="#070a13" stroke="#ffffff" strokeWidth="1" />
+                    
+                    {/* 9 cooling fan circle blades */}
+                    <g opacity="0.85" stroke="#ffffff" strokeWidth="0.5" fill="none">
+                      {/* Fan 1 */}
+                      <circle cx="171.5" cy="318.5" r="4" />
+                      <line x1="169" y1="316" x2="174" y2="321" />
+                      <line x1="174" y1="316" x2="169" y2="321" />
+
+                      {/* Fan 2 */}
+                      <circle cx="183.5" cy="318.5" r="4" />
+                      <line x1="181" y1="316" x2="186" y2="321" />
+                      <line x1="186" y1="316" x2="181" y2="321" />
+
+                      {/* Fan 3 */}
+                      <circle cx="195.5" cy="318.5" r="4" />
+                      <line x1="193" y1="316" x2="198" y2="321" />
+                      <line x1="198" y1="316" x2="193" y2="321" />
+
+                      {/* Fan 4 */}
+                      <circle cx="207.5" cy="318.5" r="4" />
+                      <line x1="205" y1="316" x2="210" y2="321" />
+                      <line x1="210" y1="316" x2="205" y2="321" />
+
+                      {/* Fan 5 */}
+                      <circle cx="219.5" cy="318.5" r="4" />
+                      <line x1="217" y1="316" x2="222" y2="321" />
+                      <line x1="222" y1="316" x2="217" y2="321" />
+
+                      {/* Fan 6 */}
+                      <circle cx="231.5" cy="318.5" r="4" />
+                      <line x1="229" y1="316" x2="234" y2="321" />
+                      <line x1="234" y1="316" x2="229" y2="321" />
+
+                      {/* Fan 7 */}
+                      <circle cx="243.5" cy="318.5" r="4" />
+                      <line x1="241" y1="316" x2="246" y2="321" />
+                      <line x1="246" y1="316" x2="241" y2="321" />
+
+                      {/* Fan 8 */}
+                      <circle cx="255.5" cy="318.5" r="4" />
+                      <line x1="253" y1="316" x2="258" y2="321" />
+                      <line x1="258" y1="316" x2="253" y2="321" />
+
+                      {/* Fan 9 */}
+                      <circle cx="267.5" cy="318.5" r="4" />
+                      <line x1="265" y1="316" x2="270" y2="321" />
+                      <line x1="270" y1="316" x2="265" y2="321" />
+                    </g>
+                    
+                    <text x="225" y="337" fill="#ffffff" fontSize="5" fontFamily="monospace" textAnchor="middle" opacity="0.5" letterSpacing="0.2">DECK ENFRIADORES CONDENSACIÓN</text>
+                  </g>
+                </svg>
+              </>
+            )}
+            
+            {/* Central Tower Target dot - ALIGNED PERFECTLY WITH THE CYAN ANCHOR */}
+            <div className="absolute h-3.5 w-3.5 bg-sky-500 rounded-full border border-slate-950 flex items-center justify-center shadow-lg shadow-sky-500/50 z-20">
+              <span className="absolute h-6 w-6 rounded-full bg-sky-400 border border-sky-400/40 animate-ping opacity-60"></span>
+            </div>
+            
+            {/* Interactive device mapped dots */}
+            {Object.keys(devices).map((tokenId) => {
+              const dev = devices[tokenId];
+              const dist = calcularDistancia(dev.lat, dev.lon, LAT_CENTRAL_DEFAULT, LON_CENTRAL_DEFAULT);
+              
+              // Scale coordinates to SVG boundaries:
+              // Let's assume max scale represents 1000m. Central is center (0,0).
+              // dx, dy coordinates relative to central in meters
+              const dx = (dev.lon - LON_CENTRAL_DEFAULT) * 111320 * Math.cos(LAT_CENTRAL_DEFAULT * Math.PI / 180);
+              const dy = (dev.lat - LAT_CENTRAL_DEFAULT) * 111320;
+
+              // Scale factor: radar radius is 140px. At dx=500m, let's make it 30% of radius (42px).
+              // So Scale = 0.084 pixels/meter. Let's clamp positions so they don't render fuera are.
+              const scale = 0.09;
+              let px = dx * scale;
+              let py = -dy * scale; // invert y for SVG compass standard
+
+              // Clamp inside radar circle of radius 130px
+              const r = Math.sqrt(px*px + py*py);
+              if (r > 125) {
+                px = (px / r) * 125;
+                py = (py / r) * 125;
+              }
+
+              const isInside = dist <= DISTANCIA_MAX_METROS;
+
+              return (
+                <div
+                  key={tokenId}
+                  style={{
+                    transform: `translate(${px}px, ${py}px)`
+                  }}
+                  className="absolute h-3 w-3 rounded-full border-2 border-slate-950 flex items-center justify-center z-10 group"
+                >
+                  <span className={`absolute h-2 w-2 rounded-full ${isInside ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+                  <span className={`absolute inset-0 rounded-full animate-ping opacity-70 ${isInside ? 'bg-emerald-500' : 'bg-amber-400'}`}></span>
+                  
+                  {/* Tooltip on Hover */}
+                  <div className="hidden group-hover:block absolute bottom-4 bg-slate-900 border border-slate-700 px-2 py-1 rounded text-[10px] font-mono text-white whitespace-nowrap z-50">
+                    <p className="font-bold">{dev.nombre || 'Operario'}</p>
+                    <p>{Math.round(dist)}m de central</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 text-center">
+            <p className="text-[11px] text-gray-400">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 mr-1.5"></span>
+              En Zona Riesgo (&lt;500m)
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-400 ml-4 mr-1.5"></span>
+              En Zona Segura (&gt;500m)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* DISPOSITIVOS Y PANEL DE HERRAMIENTAS DE PRUEBA (BOTTOM ROW) */}
+      <div className="grid md:grid-cols-12 gap-6">
+        
+        {/* DISPOSITIVOS TRANSMITIENDO TELEMETRÍA (LEFT/7-cols) */}
+        <div className="md:col-span-8 bg-slate-900 border border-slate-850 rounded-xl p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-gray-400" />
+              <h3 className="font-bold text-slate-200">Terminales Registrados y Georeferenciados</h3>
+            </div>
+            <span className="text-xs bg-slate-800 text-slate-300 font-mono px-2 py-0.5 rounded-full">
+              {Object.keys(devices).length} Activos
+            </span>
+          </div>
+
+          {Object.keys(devices).length === 0 ? (
+            <div className="py-10 text-center text-gray-500 space-y-2">
+              <MapPin className="h-10 w-10 mx-auto opacity-30 text-sky-400" />
+              <p className="text-sm">No hay dispositivos enlazados con geolocalización</p>
+              <p className="text-xs text-gray-600 max-w-sm mx-auto">
+                Los teléfonos subirán sus coordenadas automáticamente al apretar "CONECTAR" en la pestaña para operarios, o puedes agregar operarios virtuales mediante el simulador.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-mono text-xs">
+                <thead>
+                  <tr className="border-b border-slate-850 text-gray-500 uppercase tracking-wider">
+                    <th className="py-2.5 font-semibold">Operario / ID</th>
+                    <th className="py-2.5 font-semibold">Ubicación GPS</th>
+                    <th className="py-2.5 font-semibold text-center">Distancia a Central</th>
+                    <th className="py-2.5 font-semibold text-right text-rose-400">¿Recibe Sirena?</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-850">
+                  {Object.keys(devices).map((key) => {
+                    const dev = devices[key];
+                    const dist = calcularDistancia(dev.lat, dev.lon, LAT_CENTRAL_DEFAULT, LON_CENTRAL_DEFAULT);
+                    const isInside = dist <= DISTANCIA_MAX_METROS;
+                    const timeAgo = new Date(dev.fecha).toLocaleTimeString();
+
+                    return (
+                      <tr key={key} className="text-slate-300 hover:bg-slate-850/30">
+                        <td className="py-3">
+                          <p className="font-bold text-slate-200">{dev.nombre || `Operario-${key.slice(0, 5)}`}</p>
+                          <span className="text-[10px] text-gray-500">ID: {key.slice(0, 16)}...</span>
+                        </td>
+                        <td className="py-3">
+                          <p className="text-xs">{formatCoords(dev.lat, dev.lon)}</p>
+                          <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> Transmitió: {timeAgo}
+                          </span>
+                        </td>
+                        <td className="py-3 text-center">
+                          <span className={`px-2 py-0.5 rounded font-bold ${isInside ? 'bg-rose-950 text-rose-400' : 'bg-slate-800 text-slate-400'}`}>
+                            {Math.round(dist)} metros
+                          </span>
+                        </td>
+                        <td className="py-3 text-right">
+                          {isInside ? (
+                            <span className="text-rose-400 font-bold animate-pulse">SÍ (SIRENA SONANDO)</span>
+                          ) : (
+                            <span className="text-gray-500">Fuera del radio</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* SIMULATOR DEVICE CREATOR CONTROL */}
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4">
+            <span className="text-xs text-gray-400 flex items-center gap-1.5">
+              <UserPlus className="h-4 w-4 text-emerald-500" />
+              Inyección Rápida de Operarios de Prueba en el Servidor:
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => addSimulatedDevice('inside')}
+                className="bg-emerald-900/30 text-emerald-400 border border-emerald-800 hover:bg-emerald-800/40 text-[11px] font-mono px-3 py-1.5 rounded transition-transform active:scale-95 cursor-pointer"
+              >
+                + Operario DENTRO (300m)
+              </button>
+              <button
+                onClick={() => addSimulatedDevice('outside')}
+                className="bg-amber-950/20 text-amber-400 border border-amber-900 hover:bg-amber-800/40 text-[11px] font-mono px-3 py-1.5 rounded transition-transform active:scale-95 cursor-pointer"
+              >
+                + Operario FUERA (800m)
+              </button>
+              <button
+                onClick={clearDevices}
+                className="bg-slate-800 hover:bg-rose-950/40 hover:text-rose-400 border border-slate-700 text-slate-400 text-[11px] font-mono px-2.5 py-1.5 rounded flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                title="Limpiar base de datos"
+              >
+                <Trash2 className="h-3 w-3" />
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* BITÁCORA DE ACTIVIDAD (RIGHT/5-cols) */}
+        <div className="md:col-span-4 bg-slate-900 border border-slate-850 rounded-xl p-6 flex flex-col space-y-4">
+          <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
+            <Clock className="h-5 w-5 text-gray-400" />
+            <h3 className="font-bold text-slate-200">Bitácora de Eventos</h3>
+          </div>
+
+          <div className="flex-1 overflow-y-auto max-h-[290px] space-y-3 pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+            {activityLogs.map((log) => (
+              <div key={log.id} className="text-[11px] border-b border-slate-850 pb-2 flex items-start gap-1.5">
+                <span className="text-gray-500 font-mono flex-shrink-0">[{log.time}]</span>
+                <span className={`font-sans leading-relaxed ${
+                  log.type === 'alert' ? 'text-rose-400 font-bold' : 
+                  log.type === 'device' ? 'text-sky-300' : 'text-gray-400'
+                }`}>
+                  {log.msg}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

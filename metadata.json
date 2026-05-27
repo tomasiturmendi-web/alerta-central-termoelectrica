@@ -1,0 +1,6 @@
+{
+  "name": "Alerta Central Termoeléctrica",
+  "description": "Sistema de alerta y evacuación geolocalizada para centrales termoeléctricas con panel de control y receptor de alarma.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
