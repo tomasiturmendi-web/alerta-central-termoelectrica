@@ -6,7 +6,7 @@ import './index.css';
 // Registro de Service Worker para habilitar criterios PWA ("Agregar a pantalla de inicio")
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const baseUrl = import.meta.env.BASE_URL;
+    const baseUrl = (import.meta as any).env?.BASE_URL;
     const swPath = baseUrl && baseUrl !== '/' 
       ? (baseUrl.endsWith('/') ? `${baseUrl}firebase-messaging-sw.js` : `${baseUrl}/firebase-messaging-sw.js`)
       : '/firebase-messaging-sw.js';

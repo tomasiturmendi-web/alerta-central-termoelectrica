@@ -17,8 +17,18 @@ export default function App() {
   const [showDeveloperTab, setShowDeveloperTab] = useState<boolean>(false);
   
   // Shared state for single-tab simulator continuity
-  const [localAlarmState, setLocalAlarmState] = useState<EstadoAlarma>('OFF');
-  const [localDevices, setLocalDevices] = useState<Record<string, DispositivoActivo>>({});
+  const [localAlarmState, setLocalAlarmState] = useState<EstadoAlarma>(() => {
+    const saved = localStorage.getItem('sim_alarm_state');
+    return (saved === 'ON' || saved === 'OFF') ? saved : 'OFF';
+  });
+  const [localDevices, setLocalDevices] = useState<Record<string, DispositivoActivo>>(() => {
+    try {
+      const saved = localStorage.getItem('sim_devices');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
 
   // Display warning details in case of unconfigured Firebase Database Rules
   const [showConfigTips, setShowConfigTips] = useState<boolean>(false);
@@ -29,6 +39,35 @@ export default function App() {
       setIsSimulatedMode(true);
     }
   }, []);
+
+  // Listen to storage changes to sync tabs in Simulación Segura
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'sim_alarm_state' && e.newValue) {
+        setLocalAlarmState(e.newValue as EstadoAlarma);
+      }
+      if (e.key === 'sim_devices' && e.newValue) {
+        try {
+          setLocalDevices(JSON.parse(e.newValue));
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const updateLocalAlarmState = (nextState: EstadoAlarma) => {
+    setLocalAlarmState(nextState);
+    localStorage.setItem('sim_alarm_state', nextState);
+  };
+
+  const updateLocalDevices = (updater: React.SetStateAction<Record<string, DispositivoActivo>>) => {
+    setLocalDevices((prev) => {
+      const next = typeof updater === 'function' ? (updater as Function)(prev) : updater;
+      localStorage.setItem('sim_devices', JSON.stringify(next));
+      return next;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-rose-500/30 selection:text-white">
@@ -180,9 +219,9 @@ export default function App() {
               <ReceiverPhone 
                 isSimulatedMode={isSimulatedMode}
                 localAlarmState={localAlarmState}
-                setLocalAlarmState={setLocalAlarmState}
+                setLocalAlarmState={updateLocalAlarmState}
                 localDevices={localDevices}
-                setLocalDevices={setLocalDevices}
+                setLocalDevices={updateLocalDevices}
               />
             </div>
           )}
@@ -191,9 +230,9 @@ export default function App() {
             <ControlRoom
               isSimulatedMode={isSimulatedMode}
               localAlarmState={localAlarmState}
-              setLocalAlarmState={setLocalAlarmState}
+              setLocalAlarmState={updateLocalAlarmState}
               localDevices={localDevices}
-              setLocalDevices={setLocalDevices}
+              setLocalDevices={updateLocalDevices}
             />
           )}
 

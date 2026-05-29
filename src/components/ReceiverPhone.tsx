@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { db, ref, set, onValue } from '../utils/firebase';
 import { EstadoAlarma, DispositivoActivo } from '../types';
 import { calcularDistancia, formatCoords, LAT_CENTRAL_DEFAULT, LON_CENTRAL_DEFAULT, DISTANCIA_MAX_METROS } from '../utils/geo';
-import { ShieldAlert, Compass, Volume2, VolumeX, MapPin, CheckCircle, Navigation, Radio, Smartphone, HelpCircle } from 'lucide-react';
+import { ShieldAlert, Compass, Volume2, VolumeX, MapPin, CheckCircle, Navigation, Radio, Smartphone, HelpCircle, LogOut } from 'lucide-react';
 
 interface ReceiverPhoneProps {
   isSimulatedMode: boolean;
@@ -21,14 +21,27 @@ export default function ReceiverPhone({
 }: ReceiverPhoneProps) {
   const [alarmState, setAlarmState] = useState<EstadoAlarma>('OFF');
   const [deviceUuid, setDeviceUuid] = useState<string>('');
-  const [deviceName, setDeviceName] = useState<string>('Mi Teléfono de Campo');
-  const [isJoined, setIsJoined] = useState<boolean>(false);
+  const [deviceName, setDeviceName] = useState<string>(() => {
+    return localStorage.getItem('alert_device_name') || 'Mi Teléfono de Campo';
+  });
+  const [isJoined, setIsJoined] = useState<boolean>(() => {
+    return localStorage.getItem('alert_device_joined') === 'true';
+  });
   const [checking, setChecking] = useState<boolean>(false);
   
   // Real GPS or simulated coordinates
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(() => {
+    try {
+      const saved = localStorage.getItem('alert_device_coords');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [distance, setDistance] = useState<number | null>(null);
-  const [gpsSource, setGpsSource] = useState<'REAL' | 'MOCK_INSIDE' | 'MOCK_OUTSIDE' | 'NONE'>('NONE');
+  const [gpsSource, setGpsSource] = useState<'REAL' | 'MOCK_INSIDE' | 'MOCK_OUTSIDE' | 'NONE'>(() => {
+    return (localStorage.getItem('alert_device_gps_source') as any) || 'NONE';
+  });
 
   // Audio elements & Vibration Loop handlers
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -127,14 +140,43 @@ export default function ReceiverPhone({
       localStorage.setItem('alert_device_uuid', uuid);
     }
     setDeviceUuid(uuid);
-
-    const savedName = localStorage.getItem('alert_device_name');
-    if (savedName) {
-      setDeviceName(savedName);
-    }
   }, []);
 
-  // 2. Listen to Alarm state updates from database or parent
+  // 2. Auto register/keep device active on Firebase if already joined on startup
+  useEffect(() => {
+    if (isJoined && deviceUuid && coords) {
+      registerDeviceState(coords);
+    }
+  }, [isJoined, deviceUuid, coords, deviceName]);
+
+  // 3. Keep real GPS coordinates updated automatically in background using watchPosition
+  useEffect(() => {
+    if (!isJoined || gpsSource !== 'REAL' || !deviceUuid) return;
+
+    let watchId: number | null = null;
+    if (navigator.geolocation) {
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const freshCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
+          setCoords(freshCoords);
+          localStorage.setItem('alert_device_coords', JSON.stringify(freshCoords));
+          registerDeviceState(freshCoords);
+        },
+        (error) => {
+          console.warn("Error watching live location:", error);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+
+    return () => {
+      if (watchId !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [isJoined, gpsSource, deviceUuid, deviceName]);
+
+  // 4. Listen to Alarm state updates from database or parent
   useEffect(() => {
     if (isSimulatedMode || !db) {
       setAlarmState(localAlarmState);
@@ -278,6 +320,11 @@ export default function ReceiverPhone({
         setGpsSource('REAL');
         setChecking(false);
         setIsJoined(true);
+
+        localStorage.setItem('alert_device_joined', 'true');
+        localStorage.setItem('alert_device_gps_source', 'REAL');
+        localStorage.setItem('alert_device_coords', JSON.stringify(freshCoords));
+
         registerDeviceState(freshCoords);
 
         // Prompt notification permissions for background worker fallback
@@ -309,11 +356,44 @@ export default function ReceiverPhone({
 
     setTimeout(() => {
       setCoords(simulatedCoords);
-      setGpsSource(preset === 'inside' ? 'MOCK_INSIDE' : 'MOCK_OUTSIDE');
+      const mode = preset === 'inside' ? 'MOCK_INSIDE' : 'MOCK_OUTSIDE';
+      setGpsSource(mode);
       setChecking(false);
       setIsJoined(true);
+
+      localStorage.setItem('alert_device_joined', 'true');
+      localStorage.setItem('alert_device_gps_source', mode);
+      localStorage.setItem('alert_device_coords', JSON.stringify(simulatedCoords));
+
       registerDeviceState(simulatedCoords);
     }, 600);
+  };
+
+  // DISCONNECT DEVICE FROM SYSTEM / LEAVE CENTRAL
+  const disconnectDevice = async () => {
+    setIsJoined(false);
+    setCoords(null);
+    setGpsSource('NONE');
+    setDistance(null);
+    
+    localStorage.removeItem('alert_device_joined');
+    localStorage.removeItem('alert_device_coords');
+    localStorage.removeItem('alert_device_gps_source');
+
+    if (!deviceUuid) return;
+
+    if (isSimulatedMode || !db) {
+      const updated = { ...localDevices };
+      delete updated[deviceUuid];
+      setLocalDevices(updated);
+      return;
+    }
+
+    try {
+      await set(ref(db, `dispositivosActivos/${deviceUuid}`), null);
+    } catch (e) {
+      console.error("No se pudo remover el dispositivo de Firebase:", e);
+    }
   };
 
   // MUTING TOGGLE HANDLE
@@ -460,6 +540,17 @@ export default function ReceiverPhone({
               <span>CONECTAR Y VALIDAR POSICIÓN</span>
             )}
           </button>
+
+          {isJoined && (
+            <button
+              onClick={disconnectDevice}
+              type="button"
+              className="w-full font-bold py-2 px-4 rounded-xl text-center flex items-center justify-center gap-2 tracking-wide uppercase text-xs border border-red-900/50 bg-red-950/20 hover:bg-red-950/40 text-red-400 transition-all active:scale-95 cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span>Desconectar / Salir de la Central</span>
+            </button>
+          )}
         </div>
 
         {/* GPS TELEMETRY READINGS PANEL */}
