@@ -296,14 +296,14 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
   };
 
   return (
-    <div className="bg-white border border-blue-100 rounded-xl p-6 text-slate-850 max-w-5xl mx-auto space-y-8 font-sans shadow-xs">
-      <div className="space-y-3 border-b border-blue-100 pb-5">
-        <div className="flex items-center space-x-2 text-blue-600 font-mono text-sm tracking-widest uppercase font-bold">
+    <div className="bg-slate-900 border border-slate-850 rounded-xl p-6 text-slate-300 max-w-5xl mx-auto space-y-8 font-sans">
+      <div className="space-y-3 border-b border-slate-800 pb-5">
+        <div className="flex items-center space-x-2 text-rose-500 font-mono text-sm tracking-widest uppercase font-bold">
           <Terminal className="h-4 w-4" />
           <span>Generación de Aplicación para Android</span>
         </div>
-        <h2 className="text-3xl font-bold text-blue-950">Plan de Integración Móvil Nativa</h2>
-        <p className="text-slate-600 text-sm max-w-3xl leading-relaxed">
+        <h2 className="text-3xl font-bold text-slate-100">Plan de Integración Móvil Nativa</h2>
+        <p className="text-slate-400 text-sm max-w-3xl leading-relaxed">
           El navegador móvil normal bloquea el encendido forzado de la pantalla. Para saltear esta restricción en la central, 
           debes compilar estos tres archivos de código nativo incluidos en la descarga. Estos archivos interceptan las alertas FCM 
           y despiertan el teléfono automáticamente mediante el servicio en primer plano.
@@ -311,27 +311,27 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
-        <div className="bg-slate-50 p-5 rounded-lg border border-blue-100 space-y-3 shadow-xs">
-          <Smartphone className="h-8 w-8 text-blue-600" />
-          <h4 className="font-bold text-blue-950 font-mono text-sm">1. Pantalla Completa WebView</h4>
-          <p className="text-slate-600 text-xs leading-relaxed">
-            La <span className="text-slate-800 font-semibold">MainActivity</span> levanta tu diseño web a pantalla completa e integra el GPS de forma nativa resolviendo los permisos directamente con el chip del dispositivo.
+        <div className="bg-slate-950 p-5 rounded-lg border border-slate-850 space-y-3">
+          <Smartphone className="h-8 w-8 text-sky-400" />
+          <h4 className="font-bold text-slate-200 font-mono text-sm">1. Pantalla Completa WebView</h4>
+          <p className="text-slate-450 text-xs leading-relaxed">
+            La <span className="text-slate-300 font-semibold">MainActivity</span> levanta tu diseño web a pantalla completa e integra el GPS de forma nativa resolviendo los permisos directamente con el chip del dispositivo.
           </p>
         </div>
 
-        <div className="bg-slate-50 p-5 rounded-lg border border-blue-100 space-y-3 shadow-xs">
-          <Cpu className="h-8 w-8 text-sky-600" />
-          <h4 className="font-bold text-blue-950 font-mono text-sm">2. WakeLock & Desbloqueo</h4>
-          <p className="text-slate-600 text-xs leading-relaxed">
-            Usa los permisos <span className="text-slate-800 font-semibold">WAKE_LOCK</span> y <span className="text-slate-800 font-semibold">DISABLE_KEYGUARD</span> para forzar el encendido de la pantalla a máxima potencia lumínica al recibir el push de evacuación.
+        <div className="bg-slate-950 p-5 rounded-lg border border-slate-850 space-y-3">
+          <Cpu className="h-8 w-8 text-sky-400" />
+          <h4 className="font-bold text-slate-200 font-mono text-sm">2. WakeLock & Desbloqueo</h4>
+          <p className="text-slate-450 text-xs leading-relaxed">
+            Usa los permisos <span className="text-slate-300 font-semibold">WAKE_LOCK</span> y <span className="text-slate-300 font-semibold">DISABLE_KEYGUARD</span> para forzar el encendido de la pantalla a máxima potencia lumínica al recibir el push de evacuación.
           </p>
         </div>
 
-        <div className="bg-slate-50 p-5 rounded-lg border border-blue-100 space-y-3 shadow-xs">
-          <ShieldCheck className="h-8 w-8 text-rose-600" />
-          <h4 className="font-bold text-blue-950 font-mono text-sm">3. Full Screen Intent</h4>
-          <p className="text-slate-600 text-xs leading-relaxed">
-            Inicia un <span className="text-rose-600 font-semibold">FullScreenIntent</span> con prioridad máxima. Esto sobrepone de inmediato la app por encima del patrón o huella digital activa para que el operario actúe.
+        <div className="bg-slate-950 p-5 rounded-lg border border-slate-850 space-y-3">
+          <ShieldCheck className="h-8 w-8 text-rose-500" />
+          <h4 className="font-bold text-slate-200 font-mono text-sm">3. Full Screen Intent</h4>
+          <p className="text-slate-450 text-xs leading-relaxed">
+            Inicia un <span className="text-rose-450 font-semibold">FullScreenIntent</span> con prioridad máxima. Esto sobrepone de inmediato la app por encima del patrón o huella digital activa para que el operario actúe.
           </p>
         </div>
       </div>
@@ -339,22 +339,22 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase text-slate-500 tracking-wider font-semibold">Códigos fuentes nativos para usar</span>
-          <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-full font-mono font-bold shadow-xs">
+          <span className="text-xs bg-slate-950 text-slate-400 border border-slate-800 px-2.5 py-1 rounded-full font-mono font-bold">
             Directorio: /android-source/
           </span>
         </div>
 
         {files.map((file, idx) => (
-          <div key={idx} className="border border-blue-100 rounded-lg overflow-hidden bg-slate-50 shadow-xs">
-            <div className="bg-white px-4 py-3 border-b border-blue-100 flex items-center justify-between">
-              <span className="font-mono text-xs text-blue-600 font-bold">{file.title}</span>
+          <div key={idx} className="border border-slate-855 rounded-lg overflow-hidden bg-slate-950">
+            <div className="bg-slate-900 px-4 py-3 border-b border-slate-850 flex items-center justify-between">
+              <span className="font-mono text-xs text-sky-400 font-bold">{file.title}</span>
               <button
                 onClick={() => handleCopy(file.code, idx)}
-                className="text-slate-600 hover:text-slate-900 border border-slate-200 text-xs bg-white hover:bg-slate-50 px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors font-mono cursor-pointer font-bold shadow-xs"
+                className="text-slate-400 hover:text-slate-200 border border-slate-800 text-xs bg-slate-955 hover:bg-slate-900 px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors font-mono cursor-pointer font-bold"
               >
                 {copiedIndex === idx ? (
                   <>
-                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    <Check className="h-3.5 w-3.5 text-emerald-400" />
                     <span>Copiado</span>
                   </>
                 ) : (
@@ -365,16 +365,16 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 )}
               </button>
             </div>
-            <pre className="p-4 overflow-auto max-h-80 text-left font-mono text-xs leading-relaxed text-slate-700 select-all bg-slate-900 text-slate-100">
+            <pre className="p-4 overflow-auto max-h-80 text-left font-mono text-xs leading-relaxed text-slate-300 select-all bg-slate-950">
               <code>{file.code}</code>
             </pre>
           </div>
         ))}
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 p-5 rounded-lg space-y-2 shadow-xs">
-        <h4 className="text-amber-700 font-mono font-bold text-sm">⚠️ Nota Crítica Para Despliegues Reales</h4>
-        <p className="text-amber-800 text-xs leading-relaxed">
+      <div className="bg-amber-955/20 border border-amber-900/40 p-5 rounded-lg space-y-2">
+        <h4 className="text-amber-400 font-mono font-bold text-sm">⚠️ Nota Crítica Para Despliegues Reales</h4>
+        <p className="text-amber-500/90 text-xs leading-relaxed">
           En teléfonos Android comerciales con capas pesadas de fabricantes (ej: Xiaomi, Huawei, Samsung), las políticas estrictas de ahorro de energía pueden suspender las alarmas de fondo. Asegúrate de desactivar explícitamente el "Ahorro de batería" para esta aplicación y habilitar el permiso de manual "Visualizar en Pantalla de Bloqueo" dentro de la configuración de la App para asegurar efectividad total.
         </p>
       </div>

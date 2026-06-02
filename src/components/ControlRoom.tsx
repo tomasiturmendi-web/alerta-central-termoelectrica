@@ -338,15 +338,15 @@ export default function ControlRoom({
   };
 
   return (
-    <div className="font-sans space-y-6 max-w-6xl mx-auto text-slate-850">
+    <div className="font-sans space-y-6 max-w-6xl mx-auto text-slate-300">
       {/* DB STATUS CONTROL BAR */}
-      <div className="flex flex-col sm:flex-row items-center justify-between bg-white border border-blue-100 rounded-xl p-4 gap-4 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-900 border border-slate-850 rounded-xl p-4 gap-4">
         <div className="flex items-center space-x-3">
-          <div className="p-2.5 bg-blue-50 rounded-lg text-blue-600 border border-blue-100 shadow-xs">
+          <div className="p-2.5 bg-slate-950 rounded-lg text-cyan-400 border border-slate-800">
             <Radio className={`h-5 w-5 ${alarmState === 'ON' ? 'animate-pulse' : ''}`} />
           </div>
           <div>
-            <h3 className="font-bold text-blue-950 text-sm">Monitor de Conectividad</h3>
+            <h3 className="font-bold text-slate-100 text-sm">Monitor de Conectividad</h3>
             <p className="text-slate-500 text-xs font-mono">
               {isSimulatedMode 
                 ? 'Consola local aislada (Pruebas sin red)' 
@@ -356,12 +356,12 @@ export default function ControlRoom({
         </div>
         <div className="flex items-center gap-2">
           {isSimulatedMode ? (
-            <span className="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-xs font-mono flex items-center gap-1.5 font-semibold shadow-xs">
+            <span className="bg-amber-950/40 text-amber-500 border border-amber-900/60 px-3 py-1 rounded-full text-xs font-mono flex items-center gap-1.5 font-semibold">
               <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
               MODO SIMULADOR ACTIVADO
             </span>
           ) : (
-            <span className="bg-emerald-50 text-emerald-700 border border-emerald-150 px-3 py-1 rounded-full text-xs font-mono flex items-center gap-1.5 font-semibold shadow-xs">
+            <span className="bg-emerald-950/40 text-emerald-400 border border-emerald-900/60 px-3 py-1 rounded-full text-xs font-mono flex items-center gap-1.5 font-semibold">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
               FIREBASE RTDB CONECTADO
             </span>
@@ -373,15 +373,15 @@ export default function ControlRoom({
       <div className="grid md:grid-cols-12 gap-6">
         
         {/* PANEL DE CONTROL CENTRAL DE SIRENAS (LEFT/8-cols) */}
-        <div className="md:col-span-7 bg-white border border-blue-100 rounded-xl p-6 flex flex-col justify-between space-y-6 shadow-xs">
+        <div className="md:col-span-7 bg-slate-900 border border-slate-850 rounded-xl p-6 flex flex-col justify-between space-y-6">
           <div className="space-y-2">
-            <div className="flex items-center space-x-1.5 text-danger font-mono text-xs uppercase tracking-wider text-rose-600 font-bold">
+            <div className="flex items-center space-x-1.5 text-danger font-mono text-xs uppercase tracking-wider text-rose-500 font-bold">
               <ShieldAlert className="h-4 w-4" />
               <span>SALA DE CONTROL GENERAL</span>
             </div>
-            <h2 className="text-2xl font-bold text-blue-950">Disparo de Alarma por Radiofonía</h2>
-            <p className="text-slate-600 text-sm leading-relaxed">
-              Al tocar el botón de emergencia se guardará el estado <span className="font-mono text-rose-700 bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded font-bold">estadoAlarma = ON</span> en Firebase. 
+            <h2 className="text-2xl font-bold text-slate-100">Disparo de Alarma por Radiofonía</h2>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Al tocar el botón de emergencia se guardará el estado <span className="font-mono text-rose-500 bg-rose-950/40 border border-rose-900/60 px-1.5 py-0.5 rounded font-bold">estadoAlarma = ON</span> en Firebase. 
               Esto transmitirá instantáneamente de manera masiva un push de rescate a los celulares en el radio de 500m.
             </p>
           </div>
@@ -395,7 +395,7 @@ export default function ControlRoom({
                 
                 <button
                   onClick={() => triggerAlarm('OFF')}
-                  className="relative h-44 w-44 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-lg flex flex-col items-center justify-center shadow-lg shadow-rose-200/50 transition-transform active:scale-95 cursor-pointer"
+                  className="relative h-44 w-44 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-lg flex flex-col items-center justify-center shadow-lg shadow-rose-950/40 transition-transform active:scale-95 cursor-pointer"
                 >
                   <Power className="h-10 w-10 mb-2 animate-bounce" />
                   <span className="uppercase text-sm tracking-widest font-mono">ALARMA ON</span>
@@ -405,24 +405,24 @@ export default function ControlRoom({
             ) : (
               <button
                 onClick={() => triggerAlarm('ON')}
-                className="h-44 w-44 rounded-full bg-slate-50 hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-slate-200 hover:border-rose-300 font-bold text-lg flex flex-col items-center justify-center shadow-sm transition-all active:scale-95 cursor-pointer hover:shadow-md group"
+                className="h-44 w-44 rounded-full bg-slate-950 hover:bg-rose-950/40 text-rose-500 hover:text-rose-450 border border-slate-800 hover:border-rose-900/60 font-bold text-lg flex flex-col items-center justify-center shadow-sm transition-all active:scale-95 cursor-pointer hover:shadow-md group"
               >
-                <AlertTriangle className="h-10 w-10 mb-2 text-rose-600 group-hover:scale-110 transition-transform" />
+                <AlertTriangle className="h-10 w-10 mb-2 text-rose-500 group-hover:scale-110 transition-transform" />
                 <span className="uppercase text-sm tracking-widest font-mono">ACTIVAR</span>
-                <span className="text-[10px] text-slate-550 mt-1 font-mono">PUSH INDUSTRIAL</span>
+                <span className="text-[10px] text-slate-500 mt-1 font-mono">PUSH INDUSTRIAL</span>
               </button>
             )}
           </div>
 
-          <div className="border-t border-blue-100/65 pt-5 flex items-center justify-between">
+          <div className="border-t border-slate-800/80 pt-5 flex items-center justify-between">
             <div className="flex items-center space-x-3 text-sm">
-              <span className="text-slate-500 font-medium">Estado Sirena:</span>
+              <span className="text-slate-400 font-medium">Estado Sirena:</span>
               {alarmState === 'ON' ? (
-                <span className="bg-rose-50 text-rose-700 border border-rose-200 rounded px-2.5 py-0.5 font-bold font-mono text-xs tracking-wider animate-pulse flex items-center gap-1">
+                <span className="bg-rose-950/50 text-rose-450 border border-rose-900/50 rounded px-2.5 py-0.5 font-bold font-mono text-xs tracking-wider animate-pulse flex items-center gap-1">
                   🔴 ACTIVO (ON)
                 </span>
               ) : (
-                <span className="bg-slate-100 text-slate-655 border border-slate-200 rounded px-2.5 py-0.5 font-mono text-xs font-bold">
+                <span className="bg-slate-950 text-slate-400 border border-slate-800 rounded px-2.5 py-0.5 font-mono text-xs font-bold">
                   ⚪ INACTIVO (OFF)
                 </span>
               )}
@@ -431,7 +431,7 @@ export default function ControlRoom({
             <div className="flex gap-2">
               <button
                 onClick={() => triggerAlarm('OFF')}
-                className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-mono transition-colors active:scale-95 cursor-pointer font-bold"
+                className="bg-slate-950 hover:bg-slate-900 text-slate-300 border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-mono transition-colors active:scale-95 cursor-pointer font-bold"
               >
                 Resetear Alarma (OFF)
               </button>
@@ -440,17 +440,17 @@ export default function ControlRoom({
         </div>
 
         {/* RADAR VISUAL COMPONENT (RIGHT/5-cols) */}
-        <div className="md:col-span-5 bg-white border border-blue-100 rounded-xl p-5 flex flex-col justify-between space-y-4 shadow-xs">
-          <div className="flex items-center justify-between border-b border-blue-50 pb-3">
-            <h3 className="font-bold text-xs text-blue-950 font-mono tracking-wide uppercase">Plano & Posicionamiento</h3>
-            <div className="flex bg-slate-50 p-0.5 rounded-md border border-slate-200">
+        <div className="md:col-span-5 bg-slate-900 border border-slate-850 rounded-xl p-5 flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 className="font-bold text-xs text-slate-300 font-mono tracking-wide uppercase">Plano & Posicionamiento</h3>
+            <div className="flex bg-slate-950 p-0.5 rounded-md border border-slate-800">
               <button
                 type="button"
                 onClick={() => setViewMode('MAPA')}
                 className={`px-2 py-0.5 rounded text-[9px] font-mono transition-colors uppercase cursor-pointer ${
                   viewMode === 'MAPA' 
-                    ? 'bg-blue-600 text-white font-bold shadow-xs' 
-                    : 'text-slate-500 hover:text-slate-900'
+                    ? 'bg-rose-600 text-white font-bold shadow-xs' 
+                    : 'text-slate-400 hover:text-slate-100'
                 }`}
               >
                 Satelital Real
@@ -460,8 +460,8 @@ export default function ControlRoom({
                 onClick={() => setViewMode('PLANO')}
                 className={`px-2 py-0.5 rounded text-[9px] font-mono transition-colors uppercase cursor-pointer ${
                   viewMode === 'PLANO' 
-                    ? 'bg-blue-600 text-white font-bold shadow-xs' 
-                    : 'text-slate-500 hover:text-slate-900'
+                    ? 'bg-rose-600 text-white font-bold shadow-xs' 
+                    : 'text-slate-400 hover:text-slate-100'
                 }`}
               >
                 Plano CAD
@@ -471,8 +471,8 @@ export default function ControlRoom({
                 onClick={() => setViewMode('RADAR')}
                 className={`px-2 py-0.5 rounded text-[9px] font-mono transition-colors uppercase cursor-pointer ${
                   viewMode === 'RADAR' 
-                    ? 'bg-blue-600 text-white font-bold shadow-xs' 
-                    : 'text-slate-500 hover:text-slate-900'
+                    ? 'bg-rose-600 text-white font-bold shadow-xs' 
+                    : 'text-slate-400 hover:text-slate-100'
                 }`}
               >
                 Radar GPS
@@ -484,48 +484,48 @@ export default function ControlRoom({
           {setViewMode && viewMode === 'MAPA' ? (
             <div 
               ref={mapContainerRef} 
-              className="w-full h-[280px] rounded-xl border border-blue-100 bg-slate-50 z-10 overflow-hidden relative shadow-inner"
+              className="w-full h-[280px] rounded-xl border border-slate-805 bg-slate-950 z-10 overflow-hidden relative shadow-inner"
             >
               {!leafletLoaded && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white text-xs font-mono text-slate-500 space-y-2">
-                  <div className="animate-spin h-5 w-5 border-2 border-sky-500 border-t-transparent rounded-full"></div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-xs font-mono text-slate-550 space-y-2">
+                  <div className="animate-spin h-5 w-5 border-2 border-sky-505 border-t-transparent rounded-full"></div>
                   <span>Invocando Servidores Satelitales...</span>
                 </div>
               )}
             </div>
           ) : (
-            <div className="relative aspect-square w-full max-w-[280px] mx-auto bg-slate-50 rounded-full border border-blue-100 overflow-hidden flex items-center justify-center">
+            <div className="relative aspect-square w-full max-w-[280px] mx-auto bg-slate-950 rounded-full border border-slate-800 overflow-hidden flex items-center justify-center">
               {viewMode === 'RADAR' ? (
                 <>
                   {/* Compass axis lines */}
-                  <div className="absolute inset-x-0 h-[10px] border-b border-dashed border-slate-200"></div>
-                  <div className="absolute inset-y-0 w-[10px] border-r border-dashed border-slate-200"></div>
+                  <div className="absolute inset-x-0 h-[10px] border-b border-dashed border-slate-800"></div>
+                  <div className="absolute inset-y-0 w-[10px] border-r border-dashed border-slate-800"></div>
                   
                   {/* Visual ranges circles */}
-                  <div className="absolute h-4/5 w-4/5 rounded-full border border-dashed border-sky-200/50"></div>
-                  <div className="absolute h-2/5 w-2/5 rounded-full border border-dashed border-sky-100/40"></div>
+                  <div className="absolute h-4/5 w-4/5 rounded-full border border-dashed border-slate-800/40"></div>
+                  <div className="absolute h-2/5 w-2/5 rounded-full border border-dashed border-slate-800/20"></div>
                   
                   {/* Critical Perimeter 500m Circle */}
                   <div className="absolute h-3/5 w-3/5 rounded-full border-2 border-emerald-500/30 bg-emerald-500/5 animate-pulse"></div>
-                  <span className="absolute top-[21%] right-[21%] text-[8px] font-mono text-emerald-600 font-bold opacity-85">LÍMITE 500m</span>
+                  <span className="absolute top-[21%] right-[21%] text-[8px] font-mono text-emerald-500 font-bold opacity-85">LÍMITE 500m</span>
                 </>
               ) : (
                 <>
                   {/* HIGH FIDELITY SVG BLUEPRINT OF THERMOELECTRIC POWER PLANT (Trace of CAD Drawing) */}
-                  <svg className="absolute inset-0 w-full h-full opacity-90 select-none pointer-events-none" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="absolute inset-0 w-full h-full opacity-95 select-none pointer-events-none" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
                     {/* AutoCAD Grid Pattern Background */}
                     <defs>
                       <pattern id="grid-cad" width="15" height="15" patternUnits="userSpaceOnUse">
-                        <path d="M 15 0 L 0 0 0 15" fill="none" stroke="#2563eb" strokeWidth="0.15" opacity="0.25" />
+                        <path d="M 15 0 L 0 0 0 15" fill="none" stroke="#38bdf8" strokeWidth="0.15" opacity="0.15" />
                       </pattern>
                     </defs>
                     
-                    {/* Pure White CAD Blueprint Canvas */}
-                    <rect width="280" height="280" fill="#ffffff" />
+                    {/* Pure Black CAD Blueprint Canvas */}
+                    <rect width="280" height="280" fill="#020617" />
                     <rect width="280" height="280" fill="url(#grid-cad)" />
 
                     {/* Circle border boundary enclosing the blueprint view */}
-                    <circle cx="140" cy="140" r="139" fill="none" stroke="#93c5fd" strokeWidth="1.2" />
+                    <circle cx="140" cy="140" r="139" fill="none" stroke="#334155" strokeWidth="1.2" />
                     
                     {/* Evacuation perimeter indicator */}
                     <circle cx="140" cy="140" r="115" fill="none" stroke="#ef4444" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.4" />
@@ -535,69 +535,69 @@ export default function ControlRoom({
                     <g transform="translate(-91, -5)">
                       
                       {/* Left Highway and Boundary lines */}
-                      <line x1="45" y1="0" x2="45" y2="370" stroke="#94a3b8" strokeWidth="0.8" strokeDasharray="4 2" />
+                      <line x1="45" y1="0" x2="45" y2="370" stroke="#475569" strokeWidth="0.8" strokeDasharray="4 2" />
                       
                       {/* Curve access roads */}
-                      <path d="M 45 195 L 165 195 L 165 240 M 45 205 L 155 205 L 155 240" fill="none" stroke="#94a3b8" strokeWidth="0.85" />
+                      <path d="M 45 195 L 165 195 L 165 240 M 45 205 L 155 205 L 155 240" fill="none" stroke="#475569" strokeWidth="0.85" />
                       
                       {/* Security Entrance booth office */}
-                      <rect x="15" y="295" width="18" height="40" fill="#f8fafc" stroke="#3b82f6" strokeWidth="0.8" />
-                      <line x1="15" y1="315" x2="33" y2="315" stroke="#3b82f6" strokeWidth="0.6" opacity="0.5" />
+                      <rect x="15" y="295" width="18" height="40" fill="#0f172a" stroke="#38bdf8" strokeWidth="0.8" />
+                      <line x1="15" y1="315" x2="33" y2="315" stroke="#38bdf8" strokeWidth="0.6" opacity="0.5" />
 
                       {/* Left exhaust towers stack (The tall block with 11 stack valve circles) */}
-                      <rect x="120" y="25" width="16" height="105" fill="#f8fafc" stroke="#3b82f6" strokeWidth="0.85" />
-                      <line x1="120" y1="45" x2="136" y2="45" stroke="#93c5fd" strokeWidth="0.55" opacity="0.4" />
-                      <line x1="120" y1="70" x2="136" y2="70" stroke="#93c5fd" strokeWidth="0.55" opacity="0.4" />
-                      <line x1="120" y1="95" x2="136" y2="95" stroke="#93c5fd" strokeWidth="0.55" opacity="0.4" />
-                      <line x1="120" y1="120" x2="136" y2="120" stroke="#93c5fd" strokeWidth="0.55" opacity="0.4" />
+                      <rect x="120" y="25" width="16" height="105" fill="#0f172a" stroke="#38bdf8" strokeWidth="0.85" />
+                      <line x1="120" y1="45" x2="136" y2="45" stroke="#0284c7" strokeWidth="0.55" opacity="0.4" />
+                      <line x1="120" y1="70" x2="136" y2="70" stroke="#0284c7" strokeWidth="0.55" opacity="0.4" />
+                      <line x1="120" y1="95" x2="136" y2="95" stroke="#0284c7" strokeWidth="0.55" opacity="0.4" />
+                      <line x1="120" y1="120" x2="136" y2="120" stroke="#0284c7" strokeWidth="0.55" opacity="0.4" />
                       
                       {/* 11 exhaust manifold circles lined up inside */}
-                      <circle cx="128" cy="32" r="3.5" fill="none" stroke="#3b82f6" strokeWidth="0.6" />
-                      <circle cx="128" cy="41" r="3.5" fill="none" stroke="#3b82f6" strokeWidth="0.6" />
-                      <circle cx="128" cy="50" r="3.5" fill="none" stroke="#3b82f6" strokeWidth="0.6" />
-                      <circle cx="128" cy="59" r="3.5" fill="none" stroke="#3b82f6" strokeWidth="0.6" />
-                      <circle cx="128" cy="68" r="3.5" fill="none" stroke="#3b82f6" strokeWidth="0.6" />
-                      <circle cx="128" cy="77" r="3.5" fill="none" stroke="#3b82f6" strokeWidth="0.6" />
-                      <circle cx="128" cy="86" r="3.5" fill="none" stroke="#3b82f6" strokeWidth="0.6" />
-                      <circle cx="128" cy="95" r="3.5" fill="none" stroke="#3b82f6" strokeWidth="0.6" />
-                      <circle cx="128" cy="104" r="3.5" fill="none" stroke="#3b82f6" strokeWidth="0.6" />
-                      <circle cx="128" cy="113" r="3.5" fill="none" stroke="#3b82f6" strokeWidth="0.6" />
-                      <circle cx="128" cy="122" r="3.5" fill="none" stroke="#3b82f6" strokeWidth="0.6" />
+                      <circle cx="128" cy="32" r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.6" />
+                      <circle cx="128" cy="41" r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.6" />
+                      <circle cx="128" cy="50" r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.6" />
+                      <circle cx="128" cy="59" r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.6" />
+                      <circle cx="128" cy="68" r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.6" />
+                      <circle cx="128" cy="77" r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.6" />
+                      <circle cx="128" cy="86" r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.6" />
+                      <circle cx="128" cy="95" r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.6" />
+                      <circle cx="128" cy="104" r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.6" />
+                      <circle cx="128" cy="113" r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.6" />
+                      <circle cx="128" cy="122" r="3.5" fill="none" stroke="#38bdf8" strokeWidth="0.6" />
                       
-                      <text x="128" y="14" fill="#1e3a8a" fontSize="5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">CHIMENEA</text>
+                      <text x="128" y="14" fill="#38bdf8" fontSize="5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">CHIMENEA</text>
 
                       {/* Left Admin / Office blocks */}
-                      <rect x="110" y="150" width="45" height="35" fill="#f8fafc" stroke="#3b82f6" strokeWidth="0.8" />
-                      <line x1="110" y1="168" x2="155" y2="168" stroke="#3b82f6" strokeWidth="0.5" opacity="0.5" />
+                      <rect x="110" y="150" width="45" height="35" fill="#0f172a" stroke="#38bdf8" strokeWidth="0.8" />
+                      <line x1="110" y1="168" x2="155" y2="168" stroke="#38bdf8" strokeWidth="0.5" opacity="0.5" />
                       
-                      <rect x="115" y="215" width="45" height="35" fill="#f8fafc" stroke="#3b82f6" strokeWidth="0.8" />
-                      <circle cx="137.5" cy="232.5" r="5" fill="none" stroke="#3b82f6" strokeWidth="0.5" opacity="0.5" />
+                      <rect x="115" y="215" width="45" height="35" fill="#0f172a" stroke="#38bdf8" strokeWidth="0.8" />
+                      <circle cx="137.5" cy="232.5" r="5" fill="none" stroke="#38bdf8" strokeWidth="0.5" opacity="0.5" />
 
                       {/* Upper Boilers Block A (Thermo Boiler Systems) */}
-                      <rect x="175" y="32" width="42" height="42" fill="#f8fafc" stroke="#3b82f6" strokeWidth="0.85" />
-                      <circle cx="196" cy="53" r="10" fill="none" stroke="#3b82f6" strokeWidth="0.6" strokeDasharray="2 1" />
-                      <rect x="180" y="37" width="32" height="32" fill="none" stroke="#3b82f6" strokeWidth="0.5" opacity="0.4" />
-                      <text x="196" y="25" fill="#1e3a8a" fontSize="5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">CALDERA A</text>
+                      <rect x="175" y="32" width="42" height="42" fill="#0b1329" stroke="#38bdf8" strokeWidth="0.85" />
+                      <circle cx="196" cy="53" r="10" fill="none" stroke="#38bdf8" strokeWidth="0.6" strokeDasharray="2 1" />
+                      <rect x="180" y="37" width="32" height="32" fill="none" stroke="#38bdf8" strokeWidth="0.5" opacity="0.4" />
+                      <text x="196" y="25" fill="#38bdf8" fontSize="5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">CALDERA A</text>
 
                       {/* Upper Boilers Block B */}
-                      <rect x="175" y="85" width="42" height="42" fill="#f8fafc" stroke="#3b82f6" strokeWidth="0.85" />
-                      <circle cx="196" cy="106" r="10" fill="none" stroke="#3b82f6" strokeWidth="0.6" strokeDasharray="2 1" />
-                      <rect x="180" y="90" width="32" height="32" fill="none" stroke="#3b82f6" strokeWidth="0.5" opacity="0.4" />
-                      <text x="196" y="80" fill="#1e3a8a" fontSize="5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">CALDERA B</text>
+                      <rect x="175" y="85" width="42" height="42" fill="#0b1329" stroke="#38bdf8" strokeWidth="0.85" />
+                      <circle cx="196" cy="106" r="10" fill="none" stroke="#38bdf8" strokeWidth="0.6" strokeDasharray="2 1" />
+                      <rect x="180" y="90" width="32" height="32" fill="none" stroke="#38bdf8" strokeWidth="0.5" opacity="0.4" />
+                      <text x="196" y="80" fill="#38bdf8" fontSize="5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">CALDERA B</text>
 
                       {/* Steam routing system line manifold header */}
-                      <path d="M 196 74 L 196 85" stroke="#2563eb" strokeWidth="1" />
-                      <path d="M 217 53 L 231 53 L 231 130" fill="none" stroke="#2563eb" strokeWidth="1" />
-                      <path d="M 217 106 L 231 106" stroke="#2563eb" strokeWidth="1" />
+                      <path d="M 196 74 L 196 85" stroke="#38bdf8" strokeWidth="1" />
+                      <path d="M 217 53 L 231 53 L 231 130" fill="none" stroke="#38bdf8" strokeWidth="1" />
+                      <path d="M 217 106 L 231 106" stroke="#38bdf8" strokeWidth="1" />
                       
                       {/* Auxiliary Boiler Systems beneath B */}
-                      <rect x="175" y="138" width="42" height="22" fill="#f1f5f9" stroke="#3b82f6" strokeWidth="0.8" />
-                      <line x1="175" y1="149" x2="217" y2="149" stroke="#3b82f6" strokeWidth="0.5" />
+                      <rect x="175" y="138" width="42" height="22" fill="#0f172a" stroke="#38bdf8" strokeWidth="0.8" />
+                      <line x1="175" y1="149" x2="217" y2="149" stroke="#38bdf8" strokeWidth="0.5" />
 
                       {/* THE CENTRAL STEAM TURBINE & THE GLOWING YELLOW BLUIPRINT HIGHLIGHT */}
-                      <rect x="226" y="110" width="18" height="60" fill="#eff6ff" stroke="#3b82f6" strokeWidth="0.9" />
-                      <line x1="226" y1="125" x2="244" y2="125" stroke="#3b82f6" strokeWidth="0.5" />
-                      <line x1="226" y1="155" x2="244" y2="155" stroke="#3b82f6" strokeWidth="0.5" />
+                      <rect x="226" y="110" width="18" height="60" fill="#0b1329" stroke="#38bdf8" strokeWidth="0.9" />
+                      <line x1="226" y1="125" x2="244" y2="125" stroke="#38bdf8" strokeWidth="0.5" />
+                      <line x1="226" y1="155" x2="244" y2="155" stroke="#38bdf8" strokeWidth="0.5" />
                       
                       {/* SOLID YELLOW SEMI-TRANSPARENT GLOW */}
                       <rect 
@@ -611,10 +611,10 @@ export default function ControlRoom({
                         strokeWidth="1.3" 
                         className="animate-pulse" 
                       />
-                      <text x="235" y="104" fill="#b45309" fontSize="5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">SALA MOTOR</text>
+                      <text x="235" y="104" fill="#eab308" fontSize="5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">SALA MOTOR</text>
 
                       {/* Electric substation grid (Right side transformer boxes) */}
-                      <rect x="254" y="112" width="28" height="56" fill="#f8fafc" stroke="#3b82f6" strokeWidth="0.8" />
+                      <rect x="254" y="112" width="28" height="56" fill="#0f172a" stroke="#a1a1aa" strokeWidth="0.8" />
                       <circle cx="268" cy="126" r="4.5" fill="none" stroke="#d97706" strokeWidth="0.5" opacity="0.6" />
                       <circle cx="268" cy="142" r="4.5" fill="none" stroke="#d97706" strokeWidth="0.5" opacity="0.6" />
                       <circle cx="268" cy="154" r="4.5" fill="none" stroke="#d97706" strokeWidth="0.5" opacity="0.6" />
@@ -624,18 +624,18 @@ export default function ControlRoom({
                       <text x="295" y="119" fill="#d97706" fontSize="4.5" fontFamily="monospace" opacity="0.6">NODO RETE</text>
 
                       {/* Middle Plant Process structures */}
-                      <rect x="175" y="172" width="107" height="65" fill="#f8fafc" stroke="#3b82f6" strokeWidth="0.8" />
-                      <text x="228" y="208" fill="#1e40af" fontSize="6.5" fontFamily="monospace" textAnchor="middle" opacity="0.4">PROCESO CENTRAL</text>
-                      <path d="M 190 172 L 190 237 M 240 172 L 240 237" stroke="#3b82f6" strokeWidth="0.5" strokeDasharray="1 1" opacity="0.5" />
+                      <rect x="175" y="172" width="107" height="65" fill="#0b1329" stroke="#1e40af" strokeWidth="0.8" />
+                      <text x="228" y="208" fill="#38bdf8" fontSize="6.5" fontFamily="monospace" textAnchor="middle" opacity="0.4">PROCESO CENTRAL</text>
+                      <path d="M 190 172 L 190 237 M 240 172 L 240 237" stroke="#38bdf8" strokeWidth="0.5" strokeDasharray="1 1" opacity="0.5" />
 
-                      <rect x="175" y="246" width="107" height="52" fill="#f8fafc" stroke="#3b82f6" strokeWidth="0.8" />
-                      <line x1="175" y1="272" x2="282" y2="272" stroke="#3b82f6" strokeWidth="0.5" opacity="0.5" />
+                      <rect x="175" y="246" width="107" height="52" fill="#0b1329" stroke="#1e40af" strokeWidth="0.8" />
+                      <line x1="175" y1="272" x2="282" y2="272" stroke="#38bdf8" strokeWidth="0.5" opacity="0.5" />
 
                       {/* BOTTOM CONDENSER DECK FAN ARRAY (The long structure with 9 circles) */}
-                      <rect x="165" y="310" width="120" height="17" fill="#f8fafc" stroke="#3b82f6" strokeWidth="1" />
+                      <rect x="165" y="310" width="120" height="17" fill="#090d16" stroke="#38bdf8" strokeWidth="1" />
                       
                       {/* 9 cooling fan circle blades */}
-                      <g opacity="0.85" stroke="#3b82f6" strokeWidth="0.5" fill="none">
+                      <g opacity="0.85" stroke="#38bdf8" strokeWidth="0.5" fill="none">
                         {/* Fan 1 */}
                         <circle cx="171.5" cy="318.5" r="4" />
                         <line x1="169" y1="316" x2="174" y2="321" />
@@ -682,15 +682,15 @@ export default function ControlRoom({
                         <line x1="270" y1="316" x2="265" y2="321" />
                       </g>
                       
-                      <text x="225" y="337" fill="#1e3a8a" fontSize="5" fontFamily="monospace" textAnchor="middle" opacity="0.6" fontWeight="bold" letterSpacing="0.2">DECK ENFRIADORES CONDENSACIÓN</text>
+                      <text x="225" y="337" fill="#38bdf8" fontSize="5" fontFamily="monospace" textAnchor="middle" opacity="0.6" fontWeight="bold" letterSpacing="0.2">DECK ENFRIADORES CONDENSACIÓN</text>
                     </g>
                   </svg>
                 </>
               )}
               
               {/* Central Tower Target dot - ALIGNED PERFECTLY WITH THE CYAN ANCHOR */}
-              <div className="absolute h-3.5 w-3.5 bg-blue-600 rounded-full border border-white flex items-center justify-center shadow-lg shadow-blue-500/50 z-20">
-                <span className="absolute h-6 w-6 rounded-full bg-blue-400 border border-blue-400/40 animate-ping opacity-60"></span>
+              <div className="absolute h-3.5 w-3.5 bg-rose-600 rounded-full border border-white flex items-center justify-center shadow-lg shadow-rose-500/50 z-20">
+                <span className="absolute h-6 w-6 rounded-full bg-rose-400 border border-rose-400/40 animate-ping opacity-60"></span>
               </div>
               
               {/* Interactive device mapped dots */}
@@ -705,12 +705,12 @@ export default function ControlRoom({
                 const dy = (dev.lat - LAT_CENTRAL_DEFAULT) * 111320;
 
                 // Scale factor: radar radius is 140px. At dx=500m, let's make it 30% of radius (42px).
-                // So Scale = 0.084 pixels/meter. Let's clamp positions so they don't render fuera are.
+                // So Scale = 0.09 pixels/meter. Let's clamp positions so they don't render fuera are.
                 const scale = 0.09;
                 let px = dx * scale;
                 let py = -dy * scale; // invert y for SVG compass standard
 
-                // Clamp inside radar circle of radius 130px
+                // Clamp inside radar circle of radius 125px
                 const r = Math.sqrt(px*px + py*py);
                 if (r > 125) {
                   px = (px / r) * 125;
@@ -725,13 +725,13 @@ export default function ControlRoom({
                     style={{
                       transform: `translate(${px}px, ${py}px)`
                     }}
-                    className="absolute h-3.5 w-3.5 rounded-full border-2 border-white flex items-center justify-center z-10 group shadow-xs cursor-pointer"
+                    className="absolute h-3.5 w-3.5 rounded-full border-2 border-white flex items-center justify-center z-10 group shadow-lg cursor-pointer"
                   >
-                    <span className={`absolute h-2 w-2 rounded-full ${isInside ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                    <span className={`absolute inset-0 rounded-full animate-ping opacity-70 ${isInside ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                    <span className={`absolute h-2 w-2 rounded-full ${isInside ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+                    <span className={`absolute inset-0 rounded-full animate-ping opacity-70 ${isInside ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
                     
                     {/* Tooltip on Hover */}
-                    <div className="hidden group-hover:block absolute bottom-5 bg-blue-950 border border-blue-800 px-2.5 py-1 rounded-lg text-[10px] font-mono text-white whitespace-nowrap z-50 shadow-md">
+                    <div className="hidden group-hover:block absolute bottom-5 bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-lg text-[10px] font-mono text-white whitespace-nowrap z-50 shadow-md">
                       <p className="font-bold">{dev.nombre || 'Operario'}</p>
                       <p>{Math.round(dist)}m de central</p>
                     </div>
@@ -741,11 +741,11 @@ export default function ControlRoom({
             </div>
           )}
 
-          <div className="bg-slate-50 p-2.5 rounded-lg border border-blue-50 text-center">
-            <p className="text-[11px] text-slate-600 font-mono font-medium">
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 mr-1.5"></span>
+          <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 text-center">
+            <p className="text-[11px] text-slate-400 font-mono font-medium">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 mr-1.5"></span>
               En Zona Riesgo (&lt;500m)
-              <span className="inline-block h-2 w-2 rounded-full bg-amber-500 ml-4 mr-1.5"></span>
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-400 ml-4 mr-1.5"></span>
               En Zona Segura (&gt;500m)
             </p>
           </div>
@@ -756,22 +756,22 @@ export default function ControlRoom({
       <div className="grid md:grid-cols-12 gap-6">
         
         {/* DISPOSITIVOS TRANSMITIENDO TELEMETRÍA (LEFT/7-cols) */}
-        <div className="md:col-span-8 bg-white border border-blue-100 rounded-xl p-6 space-y-4 shadow-xs">
-          <div className="flex items-center justify-between border-b border-blue-50 pb-3">
+        <div className="md:col-span-8 bg-slate-900 border border-slate-855 rounded-xl p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-slate-500" />
-              <h3 className="font-bold text-blue-950 text-base">Terminales Registrados y Georeferenciados</h3>
+              <Users className="h-5 w-5 text-slate-400" />
+              <h3 className="font-bold text-slate-100 text-base">Terminales Registrados y Georeferenciados</h3>
             </div>
-            <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200/50 font-mono px-2.5 py-0.5 rounded-full font-bold shadow-xs">
+            <span className="text-xs bg-slate-950 text-slate-400 border border-slate-800/60 font-mono px-2.5 py-0.5 rounded-full font-bold">
               {Object.keys(devices).length} Activos
             </span>
           </div>
 
           {Object.keys(devices).length === 0 ? (
-            <div className="py-10 text-center text-slate-400 space-y-2">
-              <MapPin className="h-10 w-10 mx-auto opacity-30 text-sky-500 animate-bounce" />
-              <p className="text-sm font-semibold text-slate-500">No hay dispositivos enlazados con geolocalización</p>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed text-slate-500">
+            <div className="py-10 text-center text-slate-500 space-y-2">
+              <MapPin className="h-10 w-10 mx-auto opacity-30 text-rose-500 animate-bounce" />
+              <p className="text-sm font-semibold text-slate-400">No hay dispositivos enlazados con geolocalización</p>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
                 Los teléfonos subirán sus coordenadas automáticamente al apretar "CONECTAR" en la pestaña para operarios, o puedes agregar operarios virtuales mediante el simulador.
               </p>
             </div>
@@ -779,14 +779,14 @@ export default function ControlRoom({
             <div className="overflow-x-auto">
               <table className="w-full text-left font-mono text-xs">
                 <thead>
-                  <tr className="border-b border-blue-100 text-slate-500 uppercase tracking-wider text-[10px]">
+                  <tr className="border-b border-slate-800 text-slate-500 uppercase tracking-wider text-[10px]">
                     <th className="py-2.5 font-bold">Operario / ID</th>
                     <th className="py-2.5 font-bold">Ubicación GPS</th>
                     <th className="py-2.5 font-bold text-center">Distancia a Central</th>
-                    <th className="py-2.5 font-bold text-right text-rose-600">¿Recibe Sirena?</th>
+                    <th className="py-2.5 font-bold text-right text-rose-455">¿Recibe Sirena?</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-blue-50">
+                <tbody className="divide-y divide-slate-800/40">
                   {Object.keys(devices).map((key) => {
                     const dev = devices[key];
                     const dist = calcularDistancia(dev.lat, dev.lon, LAT_CENTRAL_DEFAULT, LON_CENTRAL_DEFAULT);
@@ -794,27 +794,27 @@ export default function ControlRoom({
                     const timeAgo = new Date(dev.fecha).toLocaleTimeString();
 
                     return (
-                      <tr key={key} className="text-slate-700 hover:bg-slate-50/55 transition-colors">
+                      <tr key={key} className="text-slate-300 hover:bg-slate-950/40 transition-colors">
                         <td className="py-3">
-                          <p className="font-bold text-blue-950">{dev.nombre || `Operario-${key.slice(0, 5)}`}</p>
-                          <span className="text-[10px] text-slate-400">ID: {key.slice(0, 16)}...</span>
+                          <p className="font-bold text-slate-100">{dev.nombre || `Operario-${key.slice(0, 5)}`}</p>
+                          <span className="text-[10px] text-slate-500 font-mono">ID: {key.slice(0, 16)}...</span>
                         </td>
                         <td className="py-3">
-                          <p className="text-xs font-semibold text-slate-800">{formatCoords(dev.lat, dev.lon)}</p>
-                          <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                          <p className="text-xs font-semibold text-slate-200">{formatCoords(dev.lat, dev.lon)}</p>
+                          <span className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
                             <Clock className="h-3 w-3" /> Transmitió: {timeAgo}
                           </span>
                         </td>
                         <td className="py-3 text-center">
-                          <span className={`px-2 py-0.5 rounded font-bold border ${isInside ? 'bg-rose-50 text-rose-600 border-rose-150 shadow-xs' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                          <span className={`px-2 py-0.5 rounded font-bold border ${isInside ? 'bg-rose-950/40 text-rose-400 border-rose-900/60' : 'bg-slate-950 text-slate-400 border-slate-850'}`}>
                             {Math.round(dist)} metros
                           </span>
                         </td>
-                        <td className="py-3 text-right">
+                        <td className="py-3 text-right font-bold">
                           {isInside ? (
-                            <span className="text-rose-600 font-bold animate-pulse">SÍ (SIRENA SONANDO)</span>
+                            <span className="text-rose-400 animate-pulse">SÍ (SIRENA SONANDO)</span>
                           ) : (
-                            <span className="text-slate-400 font-semibold">Fuera del radio</span>
+                            <span className="text-slate-500 font-semibold">Fuera del radio</span>
                           )}
                         </td>
                       </tr>
@@ -826,27 +826,27 @@ export default function ControlRoom({
           )}
 
           {/* SIMULATOR DEVICE CREATOR CONTROL */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-blue-100 flex flex-col lg:flex-row items-center justify-between gap-3 pt-4">
-            <span className="text-xs text-slate-600 font-mono font-medium flex items-center gap-1.5">
-              <UserPlus className="h-4 w-4 text-emerald-600" />
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col lg:flex-row items-center justify-between gap-3 pt-4">
+            <span className="text-xs text-slate-400 font-mono font-medium flex items-center gap-1.5">
+              <UserPlus className="h-4 w-4 text-emerald-400" />
               Inyección de Operarios Virtuales de Prueba:
             </span>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => addSimulatedDevice('inside')}
-                className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 text-[11px] font-mono font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 cursor-pointer shadow-xs"
+                className="bg-emerald-950/40 text-emerald-400 border border-emerald-900/50 hover:bg-emerald-950 text-[11px] font-mono font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 cursor-pointer shadow-xs"
               >
                 + Operario DENTRO (300m)
               </button>
               <button
                 onClick={() => addSimulatedDevice('outside')}
-                className="bg-amber-50 text-amber-700 border border-amber-200/80 hover:bg-amber-100/90 text-[11px] font-mono font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 cursor-pointer shadow-xs"
+                className="bg-amber-950/40 text-amber-400 border border-amber-900/40 hover:bg-amber-950 text-[11px] font-mono font-bold px-3 py-1.5 rounded-lg transition-transform active:scale-95 cursor-pointer shadow-xs"
               >
                 + Operario FUERA (800m)
               </button>
               <button
                 onClick={clearDevices}
-                className="bg-white hover:bg-rose-50 hover:text-rose-600 border border-slate-250 hover:border-rose-200 text-slate-500 text-[11px] font-mono px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all active:scale-95 cursor-pointer font-bold shadow-xs"
+                className="bg-slate-950 hover:bg-rose-950 hover:text-rose-400 border border-slate-850 hover:border-rose-900/50 text-slate-400 text-[11px] font-mono px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all active:scale-95 cursor-pointer font-bold shadow-xs"
                 title="Limpiar base de datos"
               >
                 <Trash2 className="h-3 w-3" />
@@ -857,19 +857,19 @@ export default function ControlRoom({
         </div>
 
         {/* BITÁCORA DE ACTIVIDAD (RIGHT/5-cols) */}
-        <div className="md:col-span-4 bg-white border border-blue-100 rounded-xl p-6 flex flex-col space-y-4 shadow-xs">
-          <div className="flex items-center space-x-2 border-b border-blue-50 pb-3">
-            <Clock className="h-5 w-5 text-slate-500" />
-            <h3 className="font-bold text-blue-950">Bitácora de Eventos</h3>
+        <div className="md:col-span-4 bg-slate-900 border border-slate-850 rounded-xl p-6 flex flex-col space-y-4">
+          <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
+            <Clock className="h-5 w-5 text-slate-400" />
+            <h3 className="font-bold text-slate-100">Bitácora de Eventos</h3>
           </div>
 
-          <div className="flex-1 overflow-y-auto max-h-[290px] space-y-3 pr-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+          <div className="flex-1 overflow-y-auto max-h-[290px] space-y-3 pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
             {activityLogs.map((log) => (
-              <div key={log.id} className="text-[11px] border-b border-blue-50 pb-2 flex items-start gap-1.5">
-                <span className="text-slate-400 font-mono flex-shrink-0">[{log.time}]</span>
+              <div key={log.id} className="text-[11px] border-b border-slate-850 pb-2 flex items-start gap-1.5">
+                <span className="text-slate-500 font-mono flex-shrink-0">[{log.time}]</span>
                 <span className={`font-sans leading-relaxed ${
-                  log.type === 'alert' ? 'text-rose-600 font-bold' : 
-                  log.type === 'device' ? 'text-sky-600 font-semibold' : 'text-slate-500'
+                  log.type === 'alert' ? 'text-rose-400 font-bold' : 
+                  log.type === 'device' ? 'text-sky-400 font-semibold' : 'text-slate-400'
                 }`}>
                   {log.msg}
                 </span>

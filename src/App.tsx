@@ -70,48 +70,48 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-850 flex flex-col font-sans selection:bg-blue-500/30 selection:text-blue-950">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-rose-500/30 selection:text-white">
       
       {/* DECORATIVE TOP STRIP */}
-      <div className="h-1 w-full bg-gradient-to-r from-blue-700 via-sky-400 to-emerald-500"></div>
+      <div className="h-1 w-full bg-gradient-to-r from-rose-600 via-amber-500 to-sky-600"></div>
 
       {/* TOP INDUSTRIAL HEADER NAVBAR */}
-      <header className="border-b border-blue-100 bg-white/95 backdrop-blur-md sticky top-0 z-40 px-6 py-4 shadow-xs">
+      <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-6 py-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           
           {/* Logo & Subtitle */}
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-blue-600 rounded-xl shadow-md border border-blue-500 text-white">
+            <div className="p-2.5 bg-rose-600 rounded-xl shadow-md border border-rose-500 text-white">
               <Siren className="h-6 w-6 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-extrabold tracking-tight text-blue-950 uppercase">
+                <h1 className="text-xl font-extrabold tracking-tight text-slate-100 uppercase">
                   Central Termoeléctrica
                 </h1>
                 <span 
                   onClick={() => setShowDeveloperTab(prev => !prev)}
-                  className="text-[10px] bg-sky-50 text-sky-600 font-bold px-2 py-0.5 border border-sky-200 rounded font-mono select-none cursor-pointer hover:bg-sky-100 active:scale-95 transition-all"
+                  className="text-[10px] bg-slate-900 text-slate-400 font-bold px-2 py-0.5 border border-slate-800 rounded font-mono select-none cursor-pointer hover:bg-slate-800 active:scale-95 transition-all"
                   title="Configuración de Desarrollo"
                 >
                   V.1.0
                 </span>
               </div>
-              <p className="text-blue-900/60 text-xs font-mono font-medium">
+              <p className="text-amber-500/80 text-xs font-mono font-medium">
                 SISTEMA DE ALERTA Y EVACUACIÓN GEOLOCALIZADA
               </p>
             </div>
           </div>
 
           {/* Engine Fallback Toggle Switches */}
-          <div className="flex items-center gap-3 bg-white p-1.5 rounded-xl border border-blue-100 shadow-xs">
+          <div className="flex items-center gap-3 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
             <button
               onClick={() => setIsSimulatedMode(false)}
               disabled={!initialised}
               className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all ${
                 !isSimulatedMode 
-                  ? 'bg-blue-600 text-white shadow-sm font-semibold' 
-                  : 'text-slate-500 hover:text-blue-950 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed'
+                  ? 'bg-rose-600 text-white shadow-sm font-semibold' 
+                  : 'text-slate-400 hover:text-white cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed'
               }`}
               title={!initialised ? "Firebase no inicializado" : "Conectar en línea con Firebase"}
             >
@@ -122,7 +122,7 @@ export default function App() {
               className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
                 isSimulatedMode 
                   ? 'bg-amber-600 text-white shadow-sm font-semibold' 
-                  : 'text-slate-500 hover:text-blue-950'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               Simulación Segura
@@ -130,7 +130,7 @@ export default function App() {
             
             <button
               onClick={() => setShowConfigTips(prev => !prev)}
-              className="text-slate-400 hover:text-blue-950 p-1"
+              className="text-slate-500 hover:text-slate-300 p-1"
               title="Mostrar consejos de base de datos"
             >
               <Settings className="h-4 w-4" />
@@ -142,14 +142,14 @@ export default function App() {
       {/* FIREBASE CONFIGURATION GUIDE OR MIMS HELP PANEL (ONLY SHOWS ON CLICK) */}
       {showConfigTips && (
         <div className="max-w-6xl mx-auto w-full px-6 pt-5">
-          <div className="bg-sky-50 border border-sky-200 p-5 rounded-2xl flex items-start gap-4 text-blue-900 text-xs shadow-xs">
-            <Info className="h-5 w-5 text-sky-600 flex-shrink-0 mt-0.5" />
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex items-start gap-4 text-slate-300 text-xs">
+            <Info className="h-5 w-5 text-sky-400 flex-shrink-0 mt-0.5" />
             <div className="space-y-2">
-              <h4 className="font-bold font-mono uppercase text-blue-950">Configuración de Reglas de Firebase Realtime Database</h4>
-              <p className="leading-relaxed text-slate-700">
-                Para que la conexión a Firebase Realtime funcione (especialmente desde el botón de la sala y los móviles), asegúrate de haber configurado las siguientes reglas de lectura/escritura pública en la Consola de Firebase del proyecto <span className="text-blue-950 font-mono font-bold">alertacentral-9ba4f</span> para evitar errores de permisos denegados:
+              <h4 className="font-bold font-mono uppercase text-slate-100">Configuración de Reglas de Firebase Realtime Database</h4>
+              <p className="leading-relaxed text-slate-400">
+                Para que la conexión a Firebase Realtime funcione (especialmente desde el botón de la sala y los móviles), asegúrate de haber configurado las siguientes reglas de lectura/escritura pública en la Consola de Firebase del proyecto <span className="text-slate-100 font-mono font-bold">alertacentral-9ba4f</span> para evitar errores de permisos denegados:
               </p>
-              <pre className="p-3 bg-slate-100 font-mono rounded-lg text-[10px] text-blue-900 max-w-lg border border-blue-200">
+              <pre className="p-3 bg-slate-950 font-mono rounded-lg text-[10px] text-sky-400 max-w-lg border border-slate-900">
 {`{
   "rules": {
     ".read": true,
@@ -164,13 +164,13 @@ export default function App() {
 
       {/* NAVIGATION TABS SELECTOR CONTAINER */}
       <div className="max-w-5xl mx-auto w-full px-6 py-6">
-        <div className="flex bg-white p-1 rounded-xl border border-blue-100 shadow-xs">
+        <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
           <button
             onClick={() => setActiveTab('worker')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'worker' 
-                ? 'bg-sky-50 text-blue-700 border border-sky-100 shadow-xs font-extrabold' 
-                : 'text-slate-500 hover:text-blue-950'
+                ? 'bg-slate-950 text-sky-400 border border-slate-800 font-extrabold shadow-sm' 
+                : 'text-slate-400 hover:text-slate-100'
             }`}
           >
             <Smartphone className="h-4 w-4" />
@@ -181,8 +181,8 @@ export default function App() {
             onClick={() => setActiveTab('control')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'control' 
-                ? 'bg-rose-50 text-rose-700 border border-rose-100 shadow-xs font-extrabold' 
-                : 'text-slate-500 hover:text-blue-950'
+                ? 'bg-slate-950 text-rose-400 border border-slate-800 font-extrabold shadow-sm' 
+                : 'text-slate-400 hover:text-slate-100'
             }`}
           >
             <Laptop className="h-4 w-4" />
@@ -194,8 +194,8 @@ export default function App() {
               onClick={() => setActiveTab('android' as any)}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'android' 
-                  ? 'bg-amber-50 text-amber-800 border border-amber-100 shadow-xs font-extrabold' 
-                  : 'text-slate-500 hover:text-blue-950'
+                  ? 'bg-slate-950 text-amber-50 border border-slate-800 font-extrabold shadow-sm' 
+                  : 'text-slate-400 hover:text-slate-100'
               }`}
             >
               <FileCode2 className="h-4 w-4" />
@@ -212,7 +212,7 @@ export default function App() {
           {activeTab === 'worker' && (
             <div className="space-y-6">
               <div className="text-center max-w-sm mx-auto">
-                <span className="text-[10px] font-mono bg-sky-50 text-sky-600 border border-sky-200 rounded-full px-3 py-1 font-semibold uppercase tracking-widest shadow-xs">
+                <span className="text-[10px] font-mono bg-slate-900 text-sky-400 border border-slate-800 rounded-full px-3 py-1 font-semibold uppercase tracking-widest">
                   Canal de Recepción
                 </span>
               </div>
@@ -244,12 +244,12 @@ export default function App() {
       </main>
 
       {/* FOOTER METRICS AND SPECS BRAND */}
-      <footer className="border-t border-blue-100 bg-white py-5 text-center mt-auto font-mono text-[10px] text-slate-500 shadow-xs">
+      <footer className="border-t border-slate-900 bg-slate-950 py-5 text-center mt-auto font-mono text-[10px] text-slate-500">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>
-            Coordenadas de Planta de Referencia: <span className="text-slate-700 font-bold">-34.903069, -58.733804</span>
+            Coordenadas de Planta de Referencia: <span className="text-slate-300 font-bold">-34.903069, -58.733804</span>
           </p>
-          <p className="flex items-center gap-1.5">
+          <p className="flex items-center gap-1.5 font-semibold text-slate-400">
             <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping"></span>
             Lanzador de Emergencia de Alta Disponibilidad
           </p>
