@@ -81,7 +81,7 @@ export default function App() {
           
           {/* Logo & Subtitle */}
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-rose-600 rounded-xl shadow-md border border-rose-500 text-white">
+            <div className="p-2.5 bg-blue-600 rounded-xl shadow-md border border-blue-500 text-white">
               <Siren className="h-6 w-6 animate-pulse" />
             </div>
             <div>

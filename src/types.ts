@@ -15,6 +15,7 @@ export interface DispositivoActivo {
   lon: number;
   nombre?: string; // friendly name
   distancia?: number; // calculated distance on UI
+  confirmado?: boolean; // true if worker acknowledged the alert with 'OK' button
 }
 
 export type EstadoAlarma = 'ON' | 'OFF';

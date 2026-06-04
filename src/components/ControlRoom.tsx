@@ -142,11 +142,26 @@ export default function ControlRoom({
     if (!L) return;
 
     const currentMarkers = markersRef.current;
-    const deviceIds = Object.keys(devices);
+    
+    // Filter devices based on user requirements:
+    // - If alarm is OFF, do not show any device coordinates.
+    // - If alarm is ON, only show devices in the 500-meter danger zone.
+    const devicesToDisplay: Record<string, DispositivoActivo> = {};
+    if (alarmState === 'ON') {
+      Object.keys(devices).forEach((id) => {
+        const dev = devices[id];
+        const dist = calcularDistancia(dev.lat, dev.lon, LAT_CENTRAL_DEFAULT, LON_CENTRAL_DEFAULT);
+        if (dist <= DISTANCIA_MAX_METROS) {
+          devicesToDisplay[id] = dev;
+        }
+      });
+    }
 
-    // Remove obsolete pins
+    const deviceIds = Object.keys(devicesToDisplay);
+
+    // Remove obsolete or filtered-out pins
     Object.keys(currentMarkers).forEach((id) => {
-      if (!devices[id]) {
+      if (!devicesToDisplay[id]) {
         currentMarkers[id].remove();
         delete currentMarkers[id];
       }
@@ -154,12 +169,12 @@ export default function ControlRoom({
 
     // Create or update device map markers
     deviceIds.forEach((id) => {
-      const dev = devices[id];
+      const dev = devicesToDisplay[id];
       const dist = calcularDistancia(dev.lat, dev.lon, LAT_CENTRAL_DEFAULT, LON_CENTRAL_DEFAULT);
-      const isInside = dist <= DISTANCIA_MAX_METROS;
-
-      const markerBg = isInside ? '#10b981' : '#f59e0b'; // Green when inside risk zone, Orange when safe
-      const pingBg = isInside ? 'rgba(16, 185, 129, 0.45)' : 'rgba(245, 158, 11, 0.45)';
+      
+      const isConfirmed = dev.confirmado === true;
+      const markerBg = isConfirmed ? '#10b981' : '#ef4444'; // Green when confirmed, Red when not
+      const pingBg = isConfirmed ? 'rgba(16, 185, 129, 0.45)' : 'rgba(239, 68, 68, 0.45)';
       const updatedTimeStr = new Date(dev.fecha || Date.now()).toLocaleTimeString();
 
       const userIcon = L.divIcon({
@@ -178,7 +193,7 @@ export default function ControlRoom({
         <div style="font-family: inherit;" class="text-slate-900 text-xs p-1">
           <b class="text-xs border-b border-slate-100 block pb-1 mb-1 uppercase font-mono text-slate-800">${dev.nombre || 'Operador'}</b>
           <p class="margin-0 my-0.5"><b>Distancia:</b> ${Math.round(dist)}m a central</p>
-          <p class="margin-0 my-0.5"><b>Estado:</b> ${isInside ? '<span class="text-emerald-600 font-bold">ZONA DE RIESGO</span>' : '<span class="text-amber-600 font-semibold">ZONA SEGURA</span>'}</p>
+          <p class="margin-0 my-0.5"><b>Estado:</b> ${isConfirmed ? '<span class="text-emerald-600 font-bold">CON CUSTODIA (OK)</span>' : '<span class="text-rose-600 font-bold">SIN ACUSE (NOK)</span>'}</p>
           <p class="margin-0 my-0.5 text-[9px] text-gray-500">Última señal: ${updatedTimeStr}</p>
         </div>
       `;
@@ -194,7 +209,7 @@ export default function ControlRoom({
         currentMarkers[id] = marker;
       }
     });
-  }, [devices, leafletLoaded, viewMode]);
+  }, [devices, alarmState, leafletLoaded, viewMode]);
 
   // LISTEN TO FIREBASE REALTIME DB OR SAFETY SIMULATOR OUTLETS
   useEffect(() => {
@@ -694,50 +709,59 @@ export default function ControlRoom({
               </div>
               
               {/* Interactive device mapped dots */}
-              {Object.keys(devices).map((tokenId) => {
-                const dev = devices[tokenId];
-                const dist = calcularDistancia(dev.lat, dev.lon, LAT_CENTRAL_DEFAULT, LON_CENTRAL_DEFAULT);
-                
-                // Scale coordinates to SVG boundaries:
-                // Let's assume max scale represents 1000m. Central is center (0,0).
-                // dx, dy coordinates relative to central in meters
-                const dx = (dev.lon - LON_CENTRAL_DEFAULT) * 111320 * Math.cos(LAT_CENTRAL_DEFAULT * Math.PI / 180);
-                const dy = (dev.lat - LAT_CENTRAL_DEFAULT) * 111320;
+              {alarmState === 'ON' && Object.keys(devices)
+                .filter((tokenId) => {
+                  const dev = devices[tokenId];
+                  const dist = calcularDistancia(dev.lat, dev.lon, LAT_CENTRAL_DEFAULT, LON_CENTRAL_DEFAULT);
+                  return dist <= DISTANCIA_MAX_METROS;
+                })
+                .map((tokenId) => {
+                  const dev = devices[tokenId];
+                  const dist = calcularDistancia(dev.lat, dev.lon, LAT_CENTRAL_DEFAULT, LON_CENTRAL_DEFAULT);
+                  
+                  // Scale coordinates to SVG boundaries:
+                  // Let's assume max scale represents 1000m. Central is center (0,0).
+                  // dx, dy coordinates relative to central in meters
+                  const dx = (dev.lon - LON_CENTRAL_DEFAULT) * 111320 * Math.cos(LAT_CENTRAL_DEFAULT * Math.PI / 180);
+                  const dy = (dev.lat - LAT_CENTRAL_DEFAULT) * 111320;
 
-                // Scale factor: radar radius is 140px. At dx=500m, let's make it 30% of radius (42px).
-                // So Scale = 0.09 pixels/meter. Let's clamp positions so they don't render fuera are.
-                const scale = 0.09;
-                let px = dx * scale;
-                let py = -dy * scale; // invert y for SVG compass standard
+                  // Scale factor: radar radius is 140px. At dx=500m, let's make it 30% of radius (42px).
+                  // So Scale = 0.09 pixels/meter. Let's clamp positions so they don't render fuera are.
+                  const scale = 0.09;
+                  let px = dx * scale;
+                  let py = -dy * scale; // invert y for SVG compass standard
 
-                // Clamp inside radar circle of radius 125px
-                const r = Math.sqrt(px*px + py*py);
-                if (r > 125) {
-                  px = (px / r) * 125;
-                  py = (py / r) * 125;
-                }
+                  // Clamp inside radar circle of radius 125px
+                  const r = Math.sqrt(px*px + py*py);
+                  if (r > 125) {
+                    px = (px / r) * 125;
+                    py = (py / r) * 125;
+                  }
 
-                const isInside = dist <= DISTANCIA_MAX_METROS;
+                  const isConfirmed = dev.confirmado === true;
 
-                return (
-                  <div
-                    key={tokenId}
-                    style={{
-                      transform: `translate(${px}px, ${py}px)`
-                    }}
-                    className="absolute h-3.5 w-3.5 rounded-full border-2 border-white flex items-center justify-center z-10 group shadow-lg cursor-pointer"
-                  >
-                    <span className={`absolute h-2 w-2 rounded-full ${isInside ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
-                    <span className={`absolute inset-0 rounded-full animate-ping opacity-70 ${isInside ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
-                    
-                    {/* Tooltip on Hover */}
-                    <div className="hidden group-hover:block absolute bottom-5 bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-lg text-[10px] font-mono text-white whitespace-nowrap z-50 shadow-md">
-                      <p className="font-bold">{dev.nombre || 'Operario'}</p>
-                      <p>{Math.round(dist)}m de central</p>
+                  return (
+                    <div
+                      key={tokenId}
+                      style={{
+                        transform: `translate(${px}px, ${py}px)`
+                      }}
+                      className="absolute h-3.5 w-3.5 rounded-full border-2 border-white flex items-center justify-center z-10 group shadow-lg cursor-pointer"
+                    >
+                      <span className={`absolute h-2 w-2 rounded-full ${isConfirmed ? 'bg-emerald-400' : 'bg-red-500'}`}></span>
+                      <span className={`absolute inset-0 rounded-full animate-ping opacity-70 ${isConfirmed ? 'bg-emerald-400' : 'bg-red-500'}`}></span>
+                      
+                      {/* Tooltip on Hover */}
+                      <div className="hidden group-hover:block absolute bottom-5 bg-slate-950 border border-slate-800 px-2.5 py-1.5 rounded-lg text-[10px] font-mono text-white whitespace-nowrap z-50 shadow-md">
+                        <p className="font-bold">{dev.nombre || 'Operario'}</p>
+                        <p>{Math.round(dist)}m de central</p>
+                        <p className={`font-semibold ${isConfirmed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {isConfirmed ? '✓ OK (Acuse Recibido)' : '⚠️ NOK (Sin Avisar)'}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
 
@@ -783,6 +807,7 @@ export default function ControlRoom({
                     <th className="py-2.5 font-bold">Operario / ID</th>
                     <th className="py-2.5 font-bold">Ubicación GPS</th>
                     <th className="py-2.5 font-bold text-center">Distancia a Central</th>
+                    <th className="py-2.5 font-bold text-center">Acuse de Alerta</th>
                     <th className="py-2.5 font-bold text-right text-rose-455">¿Recibe Sirena?</th>
                   </tr>
                 </thead>
@@ -809,6 +834,25 @@ export default function ControlRoom({
                           <span className={`px-2 py-0.5 rounded font-bold border ${isInside ? 'bg-rose-950/40 text-rose-400 border-rose-900/60' : 'bg-slate-950 text-slate-400 border-slate-850'}`}>
                             {Math.round(dist)} metros
                           </span>
+                        </td>
+                        <td className="py-3 text-center font-bold">
+                          {alarmState === 'ON' ? (
+                            isInside ? (
+                              dev.confirmado ? (
+                                <span className="bg-emerald-950/60 text-emerald-400 border border-emerald-900 px-2.5 py-1 rounded font-bold uppercase text-[10px]">
+                                  🟢 OK
+                                </span>
+                              ) : (
+                                <span className="bg-rose-950/60 text-rose-400 border border-rose-900 px-2.5 py-1 rounded font-bold uppercase text-[10px] animate-pulse">
+                                  🔴 NOK
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-slate-500 text-[10px]">N/A (Fuera de zona)</span>
+                            )
+                          ) : (
+                            <span className="text-slate-500 text-[10px]">—</span>
+                          )}
                         </td>
                         <td className="py-3 text-right font-bold">
                           {isInside ? (

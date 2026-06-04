@@ -28,6 +28,7 @@ export default function ReceiverPhone({
     return localStorage.getItem('alert_device_joined') === 'true';
   });
   const [checking, setChecking] = useState<boolean>(false);
+  const [ackAlarm, setAckAlarm] = useState<boolean>(false);
   
   // Real GPS or simulated coordinates
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(() => {
@@ -147,7 +148,7 @@ export default function ReceiverPhone({
     if (isJoined && deviceUuid && coords) {
       registerDeviceState(coords);
     }
-  }, [isJoined, deviceUuid, coords, deviceName]);
+  }, [isJoined, deviceUuid, coords, deviceName, ackAlarm]);
 
   // 3. Keep real GPS coordinates updated automatically in background using watchPosition
   useEffect(() => {
@@ -196,6 +197,13 @@ export default function ReceiverPhone({
       unsubscribe();
     };
   }, [isSimulatedMode, localAlarmState, setLocalAlarmState]);
+
+  // Reset ackAlarm when alarm state turns off
+  useEffect(() => {
+    if (alarmState === 'OFF') {
+      setAckAlarm(false);
+    }
+  }, [alarmState]);
 
   // Recalculate distance when coords change
   useEffect(() => {
@@ -267,7 +275,7 @@ export default function ReceiverPhone({
   }, [isAlarmTriggered, audioMuted, soundType]);
 
   // REGISTER PHONE WITH GEOLOCATION ON DATABASE
-  const registerDeviceState = async (coordinates: { lat: number; lon: number }) => {
+  const registerDeviceState = async (coordinates: { lat: number; lon: number }, forceAckValue?: boolean) => {
     if (!deviceUuid) return;
 
     const payload = {
@@ -276,7 +284,8 @@ export default function ReceiverPhone({
       activo: true,
       lat: coordinates.lat,
       lon: coordinates.lon,
-      nombre: deviceName
+      nombre: deviceName,
+      confirmado: forceAckValue !== undefined ? forceAckValue : ackAlarm
     };
 
     if (isSimulatedMode || !db) {
@@ -448,15 +457,35 @@ export default function ReceiverPhone({
               <p className="text-xl font-bold font-mono">{distance ? `${Math.round(distance)} metros` : '---'} a la Central</p>
             </div>
 
+            {/* Botón de Confirmación OK en Verde */}
+            {!ackAlarm ? (
+              <button 
+                onClick={() => {
+                  setAckAlarm(true);
+                  setAudioMuted(true);
+                  if (coords) {
+                    registerDeviceState(coords, true);
+                  }
+                }}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3.5 rounded-xl uppercase tracking-wider text-sm shadow-md shadow-emerald-900/50 hover:scale-[1.02] transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 border border-emerald-500 animate-pulse"
+              >
+                <CheckCircle className="h-5 w-5 text-white" />
+                <span>Confirmar Alerta (OK)</span>
+              </button>
+            ) : (
+              <div className="w-full bg-slate-900/90 text-emerald-400 border border-emerald-500/30 font-extrabold py-3.5 rounded-xl uppercase tracking-wider text-xs flex items-center justify-center gap-2 shadow-sm">
+                <CheckCircle className="h-4 w-4 text-emerald-400 font-bold" />
+                <span>ALERTA CONFIRMADA (OK) ✓</span>
+              </div>
+            )}
+
             <button 
               onClick={() => {
-                // Silenciar sirenas y volver temporalmente
                 setAudioMuted(true);
-                alert("Para apagar definitivamente la sirena un operador en Sala de Control debe desactivar el botón.");
               }}
-              className="w-full bg-white text-red-655 hover:bg-red-50 font-bold py-3.5 rounded-xl uppercase tracking-wider text-sm shadow-md transition-transform active:scale-95 cursor-pointer"
+              className="w-full bg-white/10 hover:bg-white/15 text-white font-bold py-2.5 rounded-xl uppercase tracking-wider text-xs transition-transform active:scale-95 cursor-pointer"
             >
-              Entendido / Silenciar Sirena
+              Silenciar Sirena
             </button>
           </div>
         </div>
