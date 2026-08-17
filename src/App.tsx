@@ -12,9 +12,9 @@ import AndroidPanel from './components/AndroidPanel';
 import { ShieldAlert, Laptop, Smartphone, FileCode2, AlertCircle, Info, Siren, Settings } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'worker' | 'control'>('worker');
+  const [activeTab, setActiveTab] = useState<'worker' | 'control' | 'android'>('worker');
   const [isSimulatedMode, setIsSimulatedMode] = useState<boolean>(!initialised);
-  const [showDeveloperTab, setShowDeveloperTab] = useState<boolean>(false);
+  const [showDeveloperTab, setShowDeveloperTab] = useState<boolean>(true);
   
   // Shared state for single-tab simulator continuity
   const [localAlarmState, setLocalAlarmState] = useState<EstadoAlarma>(() => {
@@ -189,19 +189,17 @@ export default function App() {
             <span>Sala de Control (Emisor)</span>
           </button>
 
-          {showDeveloperTab && (
-            <button
-              onClick={() => setActiveTab('android' as any)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                activeTab === 'android' 
-                  ? 'bg-slate-950 text-amber-50 border border-slate-800 font-extrabold shadow-sm' 
-                  : 'text-slate-400 hover:text-slate-100'
-              }`}
-            >
-              <FileCode2 className="h-4 w-4" />
-              <span>Código App Android</span>
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab('android')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              activeTab === 'android' 
+                ? 'bg-slate-950 text-emerald-400 border border-slate-800 font-extrabold shadow-sm' 
+                : 'text-slate-400 hover:text-slate-100'
+            }`}
+          >
+            <FileCode2 className="h-4 w-4 text-emerald-400" />
+            <span>Generador Android (Archivos APK)</span>
+          </button>
         </div>
       </div>
 
