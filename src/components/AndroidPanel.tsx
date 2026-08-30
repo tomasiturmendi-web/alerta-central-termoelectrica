@@ -8,17 +8,19 @@ export default function AndroidPanel() {
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.centraltermoelectrica.alerta">
 
-    <!-- PERMISOS DE ALTA PRIORIDAD SOLICITADOS -->
+    <!-- PERMISOS DE ALTA PRIORIDAD Y DESBLOQUEO DE PANTALLA -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    
-    <!-- PERMISOS REQUERIDOS PARA ANDROID 13+ (NOTIFICACIONES Y SERVICIOS) -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- PERMISOS REQUERIDOS PARA GEOLOCALIZACIÓN ALTA PRECISIÓN DENTRO DEL WEBVIEW -->
+    <!-- PERMISOS DE SERVICIO EN SEGUNDO PLANO Y NOTIFICACIONES -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- PERMISOS DE GEOLOCALIZACIÓN -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
@@ -30,11 +32,11 @@ export default function AndroidPanel() {
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.NoActionBar">
 
-        <!-- ACTIVIDAD PRINCIPAL CON WEBVIEW Y REACCIONES DE DESBLOQUEO -->
+        <!-- ACTIVIDAD PRINCIPAL (Muestra la pantalla de emergencia sobre el bloqueo) -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
+            android:launchMode="singleInstance"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:screenOrientation="portrait">
@@ -44,14 +46,12 @@ export default function AndroidPanel() {
             </intent-filter>
         </activity>
 
-        <!-- SERVICIO MÓVIL EN SEGUNDO PLANO ASOCIADO A FIREBASE PUSH -->
+        <!-- SERVICIO NATIVO EN SEGUNDO PLANO (Monitorea Firebase 24/7 y despierta la pantalla) -->
         <service
-            android:name=".MyFirebaseMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
+            android:name=".AlertaBackgroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="shortService" />
 
     </application>
 </manifest>`;
@@ -60,6 +60,9 @@ export default function AndroidPanel() {
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.KeyguardManager
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -83,31 +86,27 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // CONFIGURACIÓN DE PANTALLA SOBRE EL BLOQUEO (WAKE UP & BYPASS LOCKSCREEN)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
+        // 1. INICIAR SERVICIO NATIVO DE MONITOREO EN SEGUNDO PLANO
+        val serviceIntent = Intent(this, AlertaBackgroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
         } else {
-            @Suppress("DEPRECATION")
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                        WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
-                        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-            )
+            startService(serviceIntent)
         }
 
-        // WebView a pantalla completa
+        // 2. FORZAR ENCENDIDO Y DESBLOQUEO VISUAL DE PANTALLA
+        desbloquearPantalla()
+
+        // 3. CONFIGURAR WEBVIEW A PANTALLA COMPLETA
         webView = WebView(this)
         setContentView(webView)
 
-        // Habilitar configuraciones web críticas
         val webSettings = webView.settings
         webSettings.javaScriptEnabled = true
         webSettings.domStorageEnabled = true
         webSettings.databaseEnabled = true
         webSettings.allowFileAccess = true
-        webSettings.geolocationEnabled = true
+        webSettings.setGeolocationEnabled(true)
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
@@ -118,7 +117,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // ASOCIAR GEOLOCALIZACION DEL WEBVIEW AL SISTEMA OPERATIVO ANDROID
         webView.webChromeClient = object : WebChromeClient() {
             override fun onGeolocationPermissionsShowPrompt(
                 origin: String?,
@@ -143,14 +141,38 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Cambiar por la URL real provista por Google AI Studio
-        val appUrl = window.location.href 
+        // URL pública en GitHub Pages
+        val appUrl = "https://tomasiturmendi-web.github.io/alerta-central-termoelectrica/"
         webView.loadUrl(appUrl)
 
+        // Solicitar permiso de notificaciones en Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        desbloquearPantalla()
+    }
+
+    private fun desbloquearPantalla() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+            val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+            keyguardManager.requestDismissKeyguard(this, null)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                        WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
+                        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            )
         }
     }
 
@@ -177,116 +199,188 @@ class MainActivity : AppCompatActivity() {
 
   const messageServiceCode = `package com.centraltermoelectrica.alerta
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.media.RingtoneManager
-import android.net.Uri
 import android.os.Build
+import android.os.IBinder
 import android.os.PowerManager
-import android.os.Vibrator
-import android.os.VibrationEffect
 import androidx.core.app.NotificationCompat
-import com.google.firebase.messaging.FirebaseMessagingService
-import com.google.firebase.messaging.RemoteMessage
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
 
-class MyFirebaseMessagingService : FirebaseMessagingService() {
+class AlertaBackgroundService : Service() {
 
+    private var isRunning = false
+    private var mediaPlayer: MediaPlayer? = null
+    private var isAlarmActive = false
     private var wakeLock: PowerManager.WakeLock? = null
 
-    override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        super.onMessageReceived(remoteMessage)
+    override fun onBind(intent: Intent?): IBinder? = null
 
-        // 1. ENCENDER LA PANTALLA MEDIANTE WAKELOCK (Ignora bloqueo de pantalla)
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        @Suppress("DEPRECATION")
-        wakeLock = powerManager.newWakeLock(
-            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
-            "AlertaCentral::WakeLockEvacuacion"
-        )
-        wakeLock?.acquire(15000L)
+    override fun onCreate() {
+        super.onCreate()
+        val channelId = "servicio_alerta_monitoreo"
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // 2. DISPARAR VIBRADOR DE ALTA INTENSIDAD ADICIONAL
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Servicio de Monitoreo Continuo",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val notification: Notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Alerta Central")
+            .setContentText("Monitoreo de señal en tiempo real activo...")
+            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .build()
+
+        startForeground(1001, notification)
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!isRunning) {
+            isRunning = true
+            iniciarEscuchaFirebase()
+        }
+        return START_STICKY
+    }
+
+    private fun iniciarEscuchaFirebase() {
+        thread {
+            val dbUrl = "https://alertacentral-9ba4f-default-rtdb.firebaseio.com/estadoAlarma.json"
+            
+            while (isRunning) {
+                try {
+                    val url = URL(dbUrl)
+                    val conn = url.openConnection() as HttpURLConnection
+                    conn.requestMethod = "GET"
+                    conn.connectTimeout = 3000
+                    conn.readTimeout = 3000
+
+                    if (conn.responseCode == 200) {
+                        val reader = BufferedReader(InputStreamReader(conn.inputStream))
+                        val response = reader.readLine()?.replace("\"", "")?.trim() ?: "OFF"
+                        reader.close()
+
+                        if (response == "ON" && !isAlarmActive) {
+                            isAlarmActive = true
+                            dispararAlertaNativa()
+                        } else if (response == "OFF" && isAlarmActive) {
+                            isAlarmActive = false
+                            detenerAlertaNativa()
+                        }
+                    }
+                    conn.disconnect()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                // Consulta la base de datos cada 1.5 segundos
+                Thread.sleep(1500)
+            }
+        }
+    }
+
+    private fun dispararAlertaNativa() {
+        // 1. ENCENDER PANTALLA MEDIANTE WAKELOCK DE ALTA POTENCIA
         try {
-            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 1000, 500, 1000, 500, 1000), -1))
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator.vibrate(3000L)
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            @Suppress("DEPRECATION")
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                "AlertaCentral::WakeLockEmergencia"
+            )
+            wakeLock?.acquire(30000L)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // 2. REPRODUCIR SONIDO DE SIRENA CONTINUA SOBRE MODO SILENCIOSO
+        try {
+            if (mediaPlayer == null) {
+                val alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+
+                mediaPlayer = MediaPlayer().apply {
+                    setDataSource(applicationContext, alarmSound)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.21) {
+                        setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_ALARM)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .build()
+                        )
+                    }
+                    isLooping = true
+                    prepare()
+                    start()
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
-        // 3. ENVIAR NOTIFICACIÓN CON FULL SCREEN INTENT
-        sendFullScreenNotification(remoteMessage)
+        // 3. LANZAR MAINACTIVITY SOBRE LA PANTALLA DE BLOQUEO
+        try {
+            val intent = Intent(this, MainActivity::class.java).apply {
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                )
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
-    private fun sendFullScreenNotification(remoteMessage: RemoteMessage) {
-        val channelId = "canal_evacuacion_critica"
-        val channelName = "Alertas Críticas de Planta"
-
-        val title = remoteMessage.data["title"] ?: remoteMessage.notification?.title ?: "EMERGENCIA DE CENTRAL"
-        val body = remoteMessage.data["body"] ?: remoteMessage.notification?.body ?: "¡EVACUACIÓN INMEDIATA!"
-
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val intent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            putExtra("activeAlarm", "ON")
+    private fun detenerAlertaNativa() {
+        try {
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+            mediaPlayer = null
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
-        val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        } else {
-            PendingIntent.FLAG_UPDATE_CURRENT
-        }
-
-        val fullScreenPendingIntent = PendingIntent.getActivity(this, 0, intent, pendingIntentFlags)
-        val alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Notificaciones de Sirena de Evacuación Georeferenciada"
-                enableLights(true)
-                lightColor = android.graphics.Color.RED
-                enableVibration(true)
-                vibrationPattern = longArrayOf(100, 1000, 500, 1000, 100)
-                setBypassDnd(true)
-                
-                val audioAttributes = AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .build()
-                setSound(alarmSound, audioAttributes)
+        try {
+            if (wakeLock?.isHeld == true) {
+                wakeLock?.release()
             }
-            notificationManager.createNotificationChannel(channel)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
+    }
 
-        val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.stat_sys_warning)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setSound(alarmSound)
-            .setVibrate(longArrayOf(100, 1000, 500, 1000, 200, 1000))
-            .setFullScreenIntent(fullScreenPendingIntent, true)
-            .setAutoCancel(true)
-            .setOngoing(true)
-
-        notificationManager.notify(911, notificationBuilder.build())
+    override fun onDestroy() {
+        isRunning = false
+        detenerAlertaNativa()
+        super.onDestroy()
     }
 }`;
 
   const files = [
     { title: 'AndroidManifest.xml', code: manifestCode, lang: 'xml' },
     { title: 'MainActivity.kt', code: mainActivityCode, lang: 'kotlin' },
-    { title: 'MyFirebaseMessagingService.kt', code: messageServiceCode, lang: 'kotlin' }
+    { title: 'AlertaBackgroundService.kt', code: messageServiceCode, lang: 'kotlin' }
   ];
 
   const handleCopy = (code: string, index: number) => {
